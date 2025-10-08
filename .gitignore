@@ -1,0 +1,7 @@
+*.asv
+.idea/
+ast/data_ast/
+ast/runs/
+ast/data_ast_long/
+ast/long_file_windows/
+/se-resnet/checkpoints/
