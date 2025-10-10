@@ -10,8 +10,8 @@ save = True
 
 # init
 root_dir = "F:/SSL/experiment_3d/output/chiseling"
-save_path_peak = "F:/SSL/experiment_3d/output/chiseling/peak_ast"
-save_path_nopeak = "F:/SSL/experiment_3d/output/chiseling/nopeak_ast"
+save_path_peak = "F:/datasets/ssl_v2/peak_ast"
+save_path_nopeak = "F:/datasets/ssl_v2/nopeak_ast"
 os.makedirs(save_path_peak, exist_ok=True)
 os.makedirs(save_path_nopeak, exist_ok=True)
 
@@ -37,7 +37,7 @@ for file in wav_files:
 
     # Define window and hop (in seconds)
     window_duration = 0.15  # 150 ms
-    hop_duration = 0.05  # 50 ms overlap
+    hop_duration = 0.02  # 20 ms overlap
 
     # Convert to samples
     window_size = int(window_duration * sr)

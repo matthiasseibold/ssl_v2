@@ -1,7 +1,7 @@
 import os
 import numpy as np
 
-dataset_root = "F:/SSL/experiment_3d/output/chiseling"
+dataset_root = "F:/datasets/ssl_v2"
 
 train_folders = ["/peak_ast/1_011_Movie2D_heatmap/",
                  "/peak_ast/1_012_Movie2D_heatmap/",

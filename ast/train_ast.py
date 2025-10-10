@@ -171,3 +171,6 @@ print(cm)
 print('Classification Report')
 cr = classification_report(y_true, y_pred, target_names=classes)
 print(cr)
+
+# save best model
+trainer.save_model('runs/best_model_chiseling')

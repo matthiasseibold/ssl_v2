@@ -1,19 +1,24 @@
+import os
+
 import numpy as np
+import matplotlib.pyplot as plt
+import librosa
 import evaluate
 from datasets import Dataset, Audio, ClassLabel, Features
 from transformers import ASTFeatureExtractor, ASTConfig, ASTForAudioClassification, TrainingArguments, Trainer
 from sklearn.metrics import classification_report, confusion_matrix
 
-print("loading data")
-test_x = np.load("data_ast_long/test_x.npy").tolist()
-test_y = np.load("data_ast_long/test_y.npy").tolist()
+# init
+root = "F:/datasets/ssl_v2/long_file_chiseling"
+file = "1_016_Movie2D_heatmap"
 
-print("Test data length: " + str(len(test_x)))
-print("Test labels length: " + str(len(test_y)))
-print("")
+test_y = np.load("data_ast/chiseling_long/test_y_" + file + ".npy")
+
+wav_snippets = os.listdir(root + "/" + file)
+test_x = [root + "/" + file + "/" + item for item in wav_snippets]
 
 # Define class labels
-class_labels = ClassLabel(names=["Healthy", "Idle", "Zenker"])
+class_labels = ClassLabel(names=["nopeak", "peak"])
 
 SAMPLING_RATE = 16000
 
@@ -46,8 +51,8 @@ def preprocess_audio(batch):
     return output_batch
 
 # computed mean and std from training dataset
-feature_extractor.mean = -1.1509622
-feature_extractor.std = 3.5340312
+feature_extractor.mean = -0.18241186
+feature_extractor.std = 1.117633
 
 dataset_test = dataset_test.cast_column("audio", Audio(sampling_rate=feature_extractor.sampling_rate))
 dataset_test = dataset_test.rename_column("audio", "input_values")
@@ -56,15 +61,14 @@ dataset_test = dataset_test.rename_column("audio", "input_values")
 dataset_test.set_transform(preprocess_audio, output_all_columns=False)
 
 # Load configuration from the pretrained model
-pretrained_model = "runs/ast_classifier/checkpoint-2562"
+pretrained_model = "runs/best_model_chiseling"
 config = ASTConfig.from_pretrained(pretrained_model)
 
 # Update configuration with the number of labels in our dataset
-config.num_labels = 3
+config.num_labels = 2
 label2id = {
-    "Healthy": 0,
-    "Idle": 1,
-    "Zenker": 2
+    "nopeak": 0,
+    "peak": 1
 }
 config.label2id = label2id
 config.id2label = {v: k for k, v in label2id.items()}
@@ -119,15 +123,15 @@ trainer = Trainer(
 # trainer.evaluate()
 predictions = trainer.predict(test_dataset=dataset_test)
 
-# these are the predictions for every consecutive 1s window of the long file
+# these are the predictions for every consecutive window of the long file
 y_pred = predictions.predictions.argmax(axis=1)
-print(y_pred)
 
-# some insights
-healthy_predictions = np.sum(y_pred == 0)
-idle_predictions = np.sum(y_pred == 1)
-zenker_predictions = np.sum(y_pred == 2)
+for i in range(len(y_pred)):
+    print("Predicted: " + str(y_pred[i]) + " --- Ground Truth: " + str(test_y[i]))
 
-print("Predicted Healthy " + str(healthy_predictions) + " times")
-print("Predicted Idle " + str(idle_predictions) + " times")
-print("Predicted Zenker " + str(zenker_predictions) + " times")
+for i in range(len(y_pred)):
+    if test_y[i] == 1 and test_y[i-1] == 0:
+        print("Ground Truth: Peak detected at: " + str(0.15 + i * 0.02) + " s")
+
+    if y_pred[i] == 1 and y_pred[i-1] == 0:
+        print("Predictions: Peak detected at: " + str(0.15 + i * 0.02) + " s")
