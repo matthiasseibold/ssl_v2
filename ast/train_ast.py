@@ -1,15 +1,15 @@
 import numpy as np
 import evaluate
-import torch
 from datasets import Dataset, Audio, ClassLabel, Features
 from transformers import ASTFeatureExtractor, ASTConfig, ASTForAudioClassification, TrainingArguments, Trainer
 from audiomentations import Compose, AddGaussianSNR, GainTransition, Gain, ClippingDistortion, TimeStretch, PitchShift
+from sklearn.metrics import classification_report, confusion_matrix
 
 print("loading data")
-train_x = np.load("data_ast/train_x.npy").tolist()
-train_y = np.load("data_ast/train_y.npy").tolist()
-test_x = np.load("data_ast/test_x.npy").tolist()
-test_y = np.load("data_ast/test_y.npy").tolist()
+train_x = np.load("data_ast/chiseling/train_x.npy").tolist()
+train_y = np.load("data_ast/chiseling/train_y.npy").tolist()
+test_x = np.load("data_ast/chiseling/test_x.npy").tolist()
+test_y = np.load("data_ast/chiseling/test_y.npy").tolist()
 
 print("Training data length: " + str(len(train_x)))
 print("Training labels length: " + str(len(train_y)))
@@ -17,8 +17,10 @@ print("Test data length: " + str(len(test_x)))
 print("Test labels length: " + str(len(test_y)))
 print("")
 
+classes = ["nopeak", "peak"]
+
 # Define class labels
-class_labels = ClassLabel(names=["Healthy", "Idle", "Zenker"])
+class_labels = ClassLabel(names=classes)
 
 SAMPLING_RATE = 16000
 
@@ -48,40 +50,9 @@ feature_extractor = ASTFeatureExtractor.from_pretrained(pretrained_model)
 # we save model input name and sampling rate for later use
 model_input_name = feature_extractor.model_input_names[0]  # key -> 'input_values'
 
-def preprocess_audio(batch):
-    wavs = [audio['array'] for audio in batch['input_values']]
-    # inputs are spectrograms as torch.tensors now
-    inputs = feature_extractor(wavs, sampling_rate=SAMPLING_RATE, return_tensors="pt")
-
-    output_batch = {model_input_name: inputs.get(model_input_name), "labels": list(batch["labels"])}
-    return output_batch
-
-# Apply the transformation to the dataset
-# dataset_train = dataset_train.rename_column("audio", "input_values")  # rename audio column
-
-#####
-# dataset_train.set_transform(preprocess_audio, output_all_columns=False)
-
-# # calculate values for normalization
-# feature_extractor.do_normalize = False  # we set normalization to False in order to calculate the mean + std of the dataset
-# mean = []
-# std = []
-#
-# # we use the transformation w/o augmentation on the training dataset to calculate the mean + std
-# dataset_train.set_transform(preprocess_audio, output_all_columns=False)
-# for i, (audio_input, labels) in enumerate(dataset_train):
-#         cur_mean = torch.mean(dataset_train[i][audio_input])
-#         cur_std = torch.std(dataset_train[i][audio_input])
-#         mean.append(cur_mean)
-#         std.append(cur_std)
-# feature_extractor.do_normalize = True
-# print(np.mean(mean))
-# print(np.mean(std))
-#####
-
-# computed with code above
-feature_extractor.mean = -1.1509622
-feature_extractor.std = 3.5340312
+# computed with datasetstats.py
+feature_extractor.mean = -0.18241186
+feature_extractor.std = 1.117633
 
 # Augmentations
 audio_augmentations = Compose([
@@ -92,6 +63,14 @@ audio_augmentations = Compose([
     TimeStretch(min_rate=0.8, max_rate=1.2),
     PitchShift(min_semitones=-4, max_semitones=4),
 ], p=0.8, shuffle=True)
+
+def preprocess_audio(batch):
+    wavs = [audio['array'] for audio in batch['input_values']]
+    # inputs are spectrograms as torch.tensors now
+    inputs = feature_extractor(wavs, sampling_rate=SAMPLING_RATE, return_tensors="pt")
+
+    output_batch = {model_input_name: inputs.get(model_input_name), "labels": list(batch["labels"])}
+    return output_batch
 
 def preprocess_audio_with_transforms(batch):
     # we apply augmentations on each waveform
@@ -110,7 +89,8 @@ dataset_test = dataset_test.cast_column("audio", Audio(sampling_rate=feature_ext
 dataset_test = dataset_test.rename_column("audio", "input_values")
 
 # with augmentations on the training set
-dataset_train.set_transform(preprocess_audio_with_transforms, output_all_columns=False)
+# dataset_train.set_transform(preprocess_audio_with_transforms, output_all_columns=False)
+dataset_train.set_transform(preprocess_audio, output_all_columns=False)
 # w/o augmentations on the test set
 dataset_test.set_transform(preprocess_audio, output_all_columns=False)
 
@@ -119,11 +99,10 @@ dataset_test.set_transform(preprocess_audio, output_all_columns=False)
 config = ASTConfig.from_pretrained(pretrained_model)
 
 # Update configuration with the number of labels in our dataset
-config.num_labels = 3
+config.num_labels = 2
 label2id = {
-    "Healthy": 0,
-    "Idle": 1,
-    "Zenker": 2
+    "nopeak": 0,
+    "peak": 1,
 }
 config.label2id = label2id
 config.id2label = {v: k for k, v in label2id.items()}
@@ -137,9 +116,9 @@ training_args = TrainingArguments(
     output_dir="runs/ast_classifier",
     logging_dir="./logs/ast_classifier",
     # report_to="tensorboard",
-    learning_rate=5e-5,  # Learning rate
+    learning_rate=1e-5,  # Learning rate
     push_to_hub=False,
-    num_train_epochs=10,  # Number of epochs
+    num_train_epochs=5,  # Number of epochs
     per_device_train_batch_size=8,  # Batch size per device
     eval_strategy="epoch",  # Evaluation strategy
     save_strategy="epoch",
@@ -177,3 +156,18 @@ trainer = Trainer(
 )
 
 trainer.train()
+
+# get some statistics
+# trainer.evaluate()
+predictions = trainer.predict(test_dataset=dataset_test)
+
+y_pred = predictions.predictions.argmax(axis=1)
+y_true = predictions.label_ids
+
+print('Confusion Matrix')
+cm = confusion_matrix(y_true, y_pred)
+print(cm)
+
+print('Classification Report')
+cr = classification_report(y_true, y_pred, target_names=classes)
+print(cr)

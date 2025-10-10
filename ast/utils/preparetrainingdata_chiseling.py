@@ -1,21 +1,23 @@
 import os
-import random
 import numpy as np
 
-dataset_root = "F:/datasets/New_SwallowSet/Test"
-test_root =  "F:/datasets/New_SwallowSet/Test"
+dataset_root = "F:/SSL/experiment_3d/output/chiseling"
 
-train_folders = []
-test_folders = []
-classes = os.listdir(dataset_root)
-for cl in classes:
-    specimens = os.listdir(dataset_root + "/" + cl)
-    train_specimens = random.sample(specimens, int(len(specimens) * 0.8))
-    test_specimens = list(set(specimens) - set(train_specimens))
-    for specimen in train_specimens:
-        train_folders.append(dataset_root + "/" + cl + "/" + specimen + "/")
-    for specimen in test_specimens:
-        test_folders.append(test_root + "/" + cl + "/" + specimen + "/")
+train_folders = ["/peak_ast/1_011_Movie2D_heatmap/",
+                 "/peak_ast/1_012_Movie2D_heatmap/",
+                 "/peak_ast/1_013_Movie2D_heatmap/",
+                 "/peak_ast/1_014_Movie2D_heatmap/",
+                 "/peak_ast/1_015_Movie2D_heatmap/",
+                 "/nopeak_ast/1_011_Movie2D_heatmap/",
+                 "/nopeak_ast/1_012_Movie2D_heatmap/",
+                 "/nopeak_ast/1_013_Movie2D_heatmap/",
+                 "/nopeak_ast/1_014_Movie2D_heatmap/",
+                 "/nopeak_ast/1_015_Movie2D_heatmap/"]
+test_folders = ["/peak_ast/1_016_Movie2D_heatmap/",
+                "/nopeak_ast/1_016_Movie2D_heatmap/"]
+
+train_folders = [dataset_root + item for item in train_folders]
+test_folders = [dataset_root + item for item in test_folders]
 
 print(len(train_folders))
 print(len(test_folders))
@@ -34,12 +36,10 @@ for idx, f in enumerate(train_folders):
 
     files = os.listdir(f)
 
-    if "Healthy" in f:
+    if "nopeak" in f:
         y = 0 * np.ones(len(files))
-    elif "Idle" in f:
+    elif "peak" in f:
         y = 1 * np.ones(len(files))
-    else:
-        y = 2 * np.ones(len(files))
 
 
     for i, current_file in enumerate(files):
@@ -60,12 +60,10 @@ for idx, f in enumerate(test_folders):
 
     files = os.listdir(f)
 
-    if "Healthy" in f:
+    if "nopeak" in f:
         y = 0 * np.ones(len(files))
-    elif "Idle" in f:
+    elif "peak" in f:
         y = 1 * np.ones(len(files))
-    else:
-        y = 2 * np.ones(len(files))
 
     for i, current_file in enumerate(files):
         if i == 0:
@@ -86,10 +84,10 @@ print("Test data length: " + str(len(test_x)))
 print("Test labels length: " + str(len(test_y)))
 print("")
 
-if not os.path.exists("../data_ast/"):
-    os.makedirs("../data_ast/")
+save_path = "../data_ast/chiseling/"
+os.makedirs(save_path, exist_ok=True)
 
-np.save("../data_ast/train_x.npy", train_x)
-np.save("../data_ast/test_x.npy", test_x)
-np.save("../data_ast/train_y.npy", train_y)
-np.save("../data_ast/test_y.npy", test_y)
+np.save(save_path + "train_x.npy", train_x)
+np.save(save_path + "test_x.npy", test_x)
+np.save(save_path + "train_y.npy", train_y)
+np.save(save_path + "test_y.npy", test_y)

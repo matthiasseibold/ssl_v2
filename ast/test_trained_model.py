@@ -5,8 +5,8 @@ from transformers import ASTFeatureExtractor, ASTConfig, ASTForAudioClassificati
 from sklearn.metrics import classification_report, confusion_matrix
 
 print("loading data")
-test_x = np.load("data_ast/test_x.npy").tolist()
-test_y = np.load("data_ast/test_y.npy").tolist()
+test_x = np.load("data_ast/chiseling/test_x.npy").tolist()
+test_y = np.load("data_ast/chiseling/test_y.npy").tolist()
 
 print("Test data length: " + str(len(test_x)))
 print("Test labels length: " + str(len(test_y)))

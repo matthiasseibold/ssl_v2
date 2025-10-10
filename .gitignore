@@ -5,3 +5,5 @@ ast/runs/
 ast/data_ast_long/
 ast/long_file_windows/
 /se-resnet/checkpoints/
+/se-resnet/data/
+
