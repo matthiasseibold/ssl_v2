@@ -1,12 +1,8 @@
 import os
-
 import numpy as np
-import matplotlib.pyplot as plt
-import librosa
 import evaluate
 from datasets import Dataset, Audio, ClassLabel, Features
 from transformers import ASTFeatureExtractor, ASTConfig, ASTForAudioClassification, TrainingArguments, Trainer
-from sklearn.metrics import classification_report, confusion_matrix
 
 # init
 root = "F:/datasets/ssl_v2/long_file_chiseling"
@@ -77,25 +73,6 @@ config.id2label = {v: k for k, v in label2id.items()}
 model = ASTForAudioClassification.from_pretrained(pretrained_model, config=config, ignore_mismatched_sizes=True)
 model.init_weights()
 
-# Configure training run with TrainingArguments class
-training_args = TrainingArguments(
-    output_dir="runs/ast_classifier",
-    logging_dir="./logs/ast_classifier",
-    # report_to="tensorboard",
-    learning_rate=5e-5,  # Learning rate
-    push_to_hub=False,
-    num_train_epochs=10,  # Number of epochs
-    per_device_train_batch_size=8,  # Batch size per device
-    eval_strategy="epoch",  # Evaluation strategy
-    save_strategy="epoch",
-    eval_steps=1,
-    save_steps=1,
-    load_best_model_at_end=True,
-    metric_for_best_model="accuracy",
-    logging_strategy="steps",
-    logging_steps=20,
-)
-
 accuracy = evaluate.load("accuracy")
 recall = evaluate.load("recall")
 precision = evaluate.load("precision")
@@ -103,21 +80,10 @@ f1 = evaluate.load("f1")
 
 AVERAGE = "macro" if config.num_labels > 2 else "binary"
 
-def compute_metrics(eval_pred):
-    logits = eval_pred.predictions
-    predictions = np.argmax(logits, axis=1)
-    metrics = accuracy.compute(predictions=predictions, references=eval_pred.label_ids)
-    metrics.update(precision.compute(predictions=predictions, references=eval_pred.label_ids, average=AVERAGE))
-    metrics.update(recall.compute(predictions=predictions, references=eval_pred.label_ids, average=AVERAGE))
-    metrics.update(f1.compute(predictions=predictions, references=eval_pred.label_ids, average=AVERAGE))
-    return metrics
-
 # Setup the trainer
 trainer = Trainer(
     model=model,
-    args=training_args,
-    eval_dataset=dataset_test,
-    compute_metrics=compute_metrics,  # Use the metrics function from above
+    eval_dataset=dataset_test
 )
 
 # trainer.evaluate()
@@ -129,9 +95,34 @@ y_pred = predictions.predictions.argmax(axis=1)
 for i in range(len(y_pred)):
     print("Predicted: " + str(y_pred[i]) + " --- Ground Truth: " + str(test_y[i]))
 
-for i in range(len(y_pred)):
-    if test_y[i] == 1 and test_y[i-1] == 0:
-        print("Ground Truth: Peak detected at: " + str(0.15 + i * 0.02) + " s")
+FN = 0
+FP = 0
+TP = 0
 
-    if y_pred[i] == 1 and y_pred[i-1] == 0:
+for i in range(len(y_pred) - 1):
+
+    cond_gt = test_y[i] == 1 and test_y[i-1] == 0
+    cond_pred =  y_pred[i-2] == 0 and y_pred[i-1] == 0 and  y_pred[i] == 1 and y_pred[i+1] == 1
+    cond_pred_relaxed = (y_pred[i] == 1 and y_pred[i-1] == 0) or (y_pred[i-1] == 1 and y_pred[i-2] == 0) or (y_pred[i+1] == 1 and y_pred[i] == 0)
+
+    if cond_gt:
+        print("Ground Truth: Peak detected at: " + str(0.15 + i * 0.02) + " s")
+    if cond_pred:
         print("Predictions: Peak detected at: " + str(0.15 + i * 0.02) + " s")
+
+    if cond_gt and not cond_pred_relaxed:
+        FN += 1
+    if cond_pred and not cond_gt:
+        FP += 1
+    if cond_pred_relaxed and cond_gt:
+        TP += 1
+
+print("")
+print("Final results: ")
+print("FN: " + str(FN))
+print("FP: " + str(FP))
+print("TP: " + str(TP))
+print("")
+print("Precision: " + str(TP / (TP + FP)))
+print("Recall: " + str(TP / (TP + FN)))
+print("F1: " + str(2 * TP / (2 * TP + FN + FP)))
