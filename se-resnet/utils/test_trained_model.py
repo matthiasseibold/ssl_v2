@@ -20,7 +20,7 @@ print("Processing file: " + file)
 
 # read labels
 filename, file_extension = os.path.splitext(file)
-labels = pd.read_csv("../../Labels/chiseling/"+ filename + ".csv", header=None).to_numpy()
+labels = pd.read_csv("../../labels/chiseling/"+ filename + ".csv", header=None).to_numpy()
 
 # read sample
 wav2, sr = librosa.load(root + file,

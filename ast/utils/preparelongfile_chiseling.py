@@ -17,7 +17,7 @@ print("Processing file: " + file)
 
 # read labels
 filename, file_extension = os.path.splitext(file)
-labels = pd.read_csv("../../Labels/chiseling/"+ filename + ".csv", header=None).to_numpy()
+labels = pd.read_csv("../../labels/chiseling/"+ filename + ".csv", header=None).to_numpy()
 
 # create subfolder for specimen
 save_path = "F:/datasets/ssl_v2/long_file_chiseling"

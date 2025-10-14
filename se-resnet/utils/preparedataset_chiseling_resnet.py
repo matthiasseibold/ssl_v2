@@ -25,7 +25,7 @@ for file in wav_files:
 
     # read labels
     filename, file_extension = os.path.splitext(file)
-    labels = pd.read_csv("../../Labels/chiseling/"+ filename + ".csv", header=None).to_numpy()
+    labels = pd.read_csv("../../labels/chiseling/"+ filename + ".csv", header=None).to_numpy()
 
     # create subfolder for specimen
     os.makedirs(save_path_peak + "/" + filename, exist_ok=True)

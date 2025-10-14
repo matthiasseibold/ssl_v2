@@ -92,8 +92,8 @@ predictions = trainer.predict(test_dataset=dataset_test)
 # these are the predictions for every consecutive window of the long file
 y_pred = predictions.predictions.argmax(axis=1)
 
-for i in range(len(y_pred)):
-    print("Predicted: " + str(y_pred[i]) + " --- Ground Truth: " + str(test_y[i]))
+# for i in range(len(y_pred)):
+#     print("Predicted: " + str(y_pred[i]) + " --- Ground Truth: " + str(test_y[i]))
 
 FN = 0
 FP = 0
