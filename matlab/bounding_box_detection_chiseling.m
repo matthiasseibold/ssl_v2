@@ -3,7 +3,8 @@ clear
 plotting = false;
 
 % read the image
-root = "F:\SSL\experiment_3d\output\chiseling\heatmaps\1_012_Movie2D_heatmap_extracted_frames\";
+source_file = "1_016_Movie2D_heatmap";
+root = "F:\SSL\experiment_3d\output\chiseling\heatmaps\" + source_file + "_extracted_frames\";
 files = dir(root);
 files = files(~[files.isdir]);
 predictions = zeros(length(files)-2, 4);
@@ -18,7 +19,6 @@ for k = 1:length(files)
     [path, filename, ext] = fileparts(files(k).name);
     frame_id = filename(end-4:end);
     frame_id = str2double(frame_id);
-    disp(frame_id)
 
     for i = 1:1920
         for j = 1:1080
@@ -69,11 +69,24 @@ for k = 1:length(files)
     if ~isempty(props)
 
         boundingBox = props(I).BoundingBox;
-        disp(boundingBox)
     
         predictions(k, :) = boundingBox;
-        x = floor(boundingBox(1) + boundingBox(3) / 2);
-        y = floor(boundingBox(2) + boundingBox(4) / 2);
+        
+        % bounding box center
+        % x = floor(boundingBox(1) + boundingBox(3) / 2);
+        % y = floor(boundingBox(2) + boundingBox(4) / 2);
+        
+        disp([frame_id, boundingBox])
+
+        if k == 1
+            result = [frame_id, boundingBox];
+        else
+            try
+                result = [result; frame_id, boundingBox];
+            catch
+                result = [frame_id, boundingBox];
+            end
+        end
     
         if plotting == true
             
@@ -84,9 +97,6 @@ for k = 1:length(files)
             imshow(img)
             hold on
             rectangle('Position', boundingBox, 'EdgeColor', 'g', 'LineWidth', 4);
-    %         plot(x, y, 'g+', 'MarkerSize', 30, 'LineWidth', 2);        
-    %         plot(x_gt, y_gt, 'r+', 'MarkerSize', 30, 'LineWidth', 2);
-            
         
             % filtered heatmap
             subplot(1,2,2)
@@ -112,4 +122,6 @@ end
 disp(strcat(num2str(length(files)), " files processed"))
 disp(strcat(num2str(length(files)-count), " successful detections"))
 disp(strcat(num2str(count), " empty detections"))
+
+writematrix(result, "results/" + source_file + ".csv");
 
