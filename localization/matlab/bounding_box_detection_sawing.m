@@ -1,6 +1,6 @@
 close all
 clear
-plotting = false;
+plotting = true;
 
 % read the image
 source_file = "1_010_Movie2D_heatmap";

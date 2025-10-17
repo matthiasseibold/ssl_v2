@@ -1,0 +1,30 @@
+FOLD 1:
+Final results:
+FN: 4.0
+FP: 4.0
+TP: 1.0
+
+Precision: 0.2
+Recall: 0.2
+F1: 0.2
+
+
+#######################################
+FOLD 2:
+Final results:
+FN: 4.0
+FP: 4.0
+TP: 1.0
+
+Precision: 0.2
+Recall: 0.2
+F1: 0.2
+
+#######################################
+OVERALL:
+
+Precision: 0.2 +- 0
+Recall: 0.2 +- 0
+F1: 0.2 +- 0
+
+

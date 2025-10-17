@@ -4,8 +4,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import librosa
 
-plot_audio_labels = False
-extract_frames = True
+plot_audio_labels = True
+extract_frames = False
 
 # setup paths
 path_labels = "../labels/chiseling/"

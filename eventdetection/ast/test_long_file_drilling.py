@@ -6,25 +6,90 @@ from transformers import ASTFeatureExtractor, ASTConfig, ASTForAudioClassificati
 
 verbose = True
 relaxed_condition = False
+relaxed_window = 10
 
 # init
-root = "F:/datasets/ssl_v2/long_file_sawing"
-files = ["1_006_Movie2D_heatmap",
-         "1_007_Movie2D_heatmap",
-         "1_008_Movie2D_heatmap",
-         "1_009_Movie2D_heatmap",
-         "1_010_Movie2D_heatmap",]
+root = "F:/datasets/ssl_v2/long_file_drilling"
+files = ["1_021_Movie2D_heatmap/",
+        "1_022_Movie2D_heatmap/"]
 fold = "fold1"
+
+def transition_check(y_pred, i, window=10):
+    """
+    Returns True if a 0→1 transition occurs at index i or
+    within ±`window` frames around it.
+
+    Parameters
+    ----------
+    y_pred : list or np.ndarray
+        Sequence of predicted values (0s and 1s).
+    i : int
+        Current frame index to check.
+    window : int
+        Number of frames to look backward and forward (default: 10).
+
+    Returns
+    -------
+    bool
+        True if a 0→1 transition occurs at or near index i.
+    """
+    y_pred = np.asarray(y_pred)
+
+    # Handle edge cases
+    if len(y_pred) < 2 or i <= 0 or i >= len(y_pred):
+        return False
+
+    # Define window safely
+    start = max(1, i - window)
+    end = min(len(y_pred) - 1, i + window)
+
+    # Check for any 0→1 transition within ±window frames
+    for j in range(start, end + 1):
+        if y_pred[j-1] == 0 and y_pred[j] == 1:
+            return True
+
+    return False
+
+def has_one_nearby(arr, i, window=10):
+    """
+    Returns True if there is a 1 within ±`window` frames of index i.
+
+    Parameters
+    ----------
+    arr : list or np.ndarray
+        Sequence of 0s and 1s.
+    i : int
+        Current frame index to check.
+    window : int
+        Number of frames to look backward and forward (default: 10).
+
+    Returns
+    -------
+    bool
+        True if there is at least one 1 in the surrounding window.
+    """
+    arr = np.asarray(arr)
+
+    # Check index validity
+    if i < 0 or i >= len(arr):
+        return False
+
+    # Define safe window bounds
+    start = max(0, i - window)
+    end = min(len(arr), i + window + 1)
+
+    # Check for any 1 in the window
+    return np.any(arr[start:end] == 1)
 
 for count, file in enumerate(files):
 
-    test_y = np.load("data_ast/sawing_long_" + file + "/test_y.npy")
+    test_y = np.load("data_ast/drilling_long_" + file + "/test_y.npy")
 
     wav_snippets = os.listdir(root + "_" + file + "/" + file)
     test_x = [root + "_" + file + "/" + file + "/" + item for item in wav_snippets]
 
     # Define class labels
-    class_labels = ClassLabel(names=["nosawing", "sawing"])
+    class_labels = ClassLabel(names=["nodrilling", "drilling"])
 
     SAMPLING_RATE = 16000
 
@@ -67,14 +132,14 @@ for count, file in enumerate(files):
     dataset_test.set_transform(preprocess_audio, output_all_columns=False)
 
     # Load configuration from the pretrained model
-    pretrained_model = "runs/best_model_sawing_" + fold
+    pretrained_model = "runs/best_model_drilling_" + fold
     config = ASTConfig.from_pretrained(pretrained_model)
 
     # Update configuration with the number of labels in our dataset
     config.num_labels = 2
     label2id = {
-        "nosawing": 0,
-        "sawing": 1
+        "nodrilling": 0,
+        "drilling": 1
     }
     config.label2id = label2id
     config.id2label = {v: k for k, v in label2id.items()}
@@ -109,13 +174,12 @@ for count, file in enumerate(files):
     tp_log = np.zeros(len(y_pred))
     fp_log = np.zeros(len(y_pred))
 
-    for i in range(len(y_pred) - 1):
+    for i in range(len(y_pred)):
 
         cond_gt = test_y[i] == 1 and test_y[i - 1] == 0
-        cond_pred = y_pred[i - 2] == 0 and y_pred[i - 1] == 0 and y_pred[i] == 1 and y_pred[i + 1] == 1
+        cond_pred = y_pred[i - 2] == 0 and y_pred[i - 1] == 0 and y_pred[i] == 1
         # we count the detection as true positive, if there is one frame offset (if it's detected one frame too early or too late)
-        cond_pred_relaxed = (y_pred[i] == 1 and y_pred[i - 1] == 0) or (y_pred[i - 1] == 1 and y_pred[i - 2] == 0) or (
-                    y_pred[i + 1] == 1 and y_pred[i] == 0)
+        cond_pred_relaxed = transition_check(y_pred, i=i, window=relaxed_window)
 
         if verbose:
             print("Frame number: " + str(i) + " --- Predicted: " + str(y_pred[i]) + " --- Ground Truth: " + str(
@@ -130,15 +194,10 @@ for count, file in enumerate(files):
                 gt_onsets += 1
             if cond_pred and not cond_gt:
                 fp_log[i] = 1
-                # we don't count it if we had a true positive before (relaxed condition)
-                if tp_log[i - 1] == 1:
-                    fp_log[i] = 0
             if cond_pred_relaxed and cond_gt:
                 TP += 1
                 tp_log[i] = 1
-                # also, we don't count the false positive if in the frame directly after a true positive is detected (relaxed condition)
-                if fp_log[i - 1] == 1:
-                    fp_log[i - 1] = 0
+
         else:
             if cond_gt:
                 gt_onsets += 1
@@ -146,6 +205,12 @@ for count, file in enumerate(files):
                 fp_log[i] = 1
             if cond_pred and cond_gt:
                 tp_log[i] = 1
+
+    # filter FPs according to relaxed condition
+    if relaxed_condition:
+        for i in range(len(fp_log)):
+            if has_one_nearby(tp_log, i, window=relaxed_window):
+                fp_log[i] = 0
 
     FN = gt_onsets - np.sum(tp_log)
     FP = np.sum(fp_log)
