@@ -9,9 +9,9 @@ plot = False
 save = True
 
 # init
-root_dir = "F:/SSL/experiment_3d/output/chiseling"
-save_path_peak = "F:/datasets/ssl_v2/peak_ast"
-save_path_nopeak = "F:/datasets/ssl_v2/nopeak_ast"
+root_dir = "F:/SSL/experiment_3d/output/sawing"
+save_path_peak = "F:/datasets/ssl_v2/sawing_ast"
+save_path_nopeak = "F:/datasets/ssl_v2/nosawing_ast"
 os.makedirs(save_path_peak, exist_ok=True)
 os.makedirs(save_path_nopeak, exist_ok=True)
 
@@ -25,7 +25,7 @@ for file in wav_files:
 
     # read labels
     filename, file_extension = os.path.splitext(file)
-    labels = pd.read_csv("../../labels/chiseling/"+ filename + ".csv", header=None).to_numpy()
+    labels = pd.read_csv("../../../labels/sawing/"+ filename + ".csv", header=None).to_numpy()
 
     # create subfolder for specimen
     os.makedirs(save_path_peak + "/" + filename, exist_ok=True)
@@ -52,7 +52,7 @@ for file in wav_files:
     # Sliding window loop
     for start in range(0, len(wav2) - window_size + 1, hop_size):
 
-        print("Window #" + str(count))
+        # print("Window #" + str(count))
 
         end = start + window_size
         window = wav2[start:end]
@@ -62,7 +62,7 @@ for file in wav_files:
         end_s = end / sr
 
         # check if we have a peak in the spectrogram (and allow for some slipping)
-        condition = np.any((labels >= start_s - 0.05) & (labels <= end_s))
+        condition = end_s > labels[0,0] and start_s < labels[0,1]
 
         if save:
             if condition:
@@ -76,9 +76,9 @@ for file in wav_files:
             S_dB = librosa.power_to_db(S, ref=np.max)
             librosa.display.specshow(S_dB, sr=sr, x_axis='time', y_axis='mel', fmax=8000, cmap='magma')
             if condition:
-                plt.title('Peak')
+                plt.title('Sawing')
             else:
-                plt.title('No peak')
+                plt.title('No Sawing')
             plt.draw()
             plt.pause(0.01)
 

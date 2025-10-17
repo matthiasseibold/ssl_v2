@@ -1,4 +1,3 @@
-import random
 import numpy as np
 from tensorflow.keras.models import Model, Sequential
 from tensorflow.keras.layers import Dense
@@ -7,8 +6,6 @@ from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from sklearn.metrics import classification_report, confusion_matrix
 from tensorflow.keras.applications.resnet import ResNet50
 import utils.resnet as resnet
-import matplotlib.pyplot as plt
-from utils.TrainUtils import focal_loss
 
 print("loading data")
 train_x = np.load("data/train_x.npy")

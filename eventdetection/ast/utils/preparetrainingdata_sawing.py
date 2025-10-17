@@ -2,19 +2,22 @@ import os
 import numpy as np
 
 dataset_root = "F:/datasets/ssl_v2"
+save_path = "../data_ast/sawing_fold2/"
 
-train_folders = ["/peak_ast/1_011_Movie2D_heatmap/",
-                 "/peak_ast/1_012_Movie2D_heatmap/",
-                 "/peak_ast/1_013_Movie2D_heatmap/",
-                 "/peak_ast/1_014_Movie2D_heatmap/",
-                 "/peak_ast/1_015_Movie2D_heatmap/",
-                 "/nopeak_ast/1_011_Movie2D_heatmap/",
-                 "/nopeak_ast/1_012_Movie2D_heatmap/",
-                 "/nopeak_ast/1_013_Movie2D_heatmap/",
-                 "/nopeak_ast/1_014_Movie2D_heatmap/",
-                 "/nopeak_ast/1_015_Movie2D_heatmap/"]
-test_folders = ["/peak_ast/1_016_Movie2D_heatmap/",
-                "/nopeak_ast/1_016_Movie2D_heatmap/"]
+train_recordings = ["1_006_Movie2D_heatmap/",
+                   "1_007_Movie2D_heatmap/",
+                   "1_008_Movie2D_heatmap/",
+                   "1_009_Movie2D_heatmap/",
+                   "1_010_Movie2D_heatmap/"]
+
+test_recordings = ["1_001_Movie2D_heatmap/",
+                    "1_002_Movie2D_heatmap/",
+                    "1_003_Movie2D_heatmap/",
+                    "1_004_Movie2D_heatmap/",
+                    "1_005_Movie2D_heatmap/"]
+
+train_folders = ["/sawing_ast/" + item for item in train_recordings] + ["/nosawing_ast/" + item for item in train_recordings]
+test_folders = ["/sawing_ast/" + item for item in test_recordings] + ["/nosawing_ast/" + item for item in test_recordings]
 
 train_folders = [dataset_root + item for item in train_folders]
 test_folders = [dataset_root + item for item in test_folders]
@@ -36,9 +39,9 @@ for idx, f in enumerate(train_folders):
 
     files = os.listdir(f)
 
-    if "nopeak" in f:
+    if "nosawing" in f:
         y = 0 * np.ones(len(files))
-    elif "peak" in f:
+    elif "sawing" in f:
         y = 1 * np.ones(len(files))
 
 
@@ -60,9 +63,9 @@ for idx, f in enumerate(test_folders):
 
     files = os.listdir(f)
 
-    if "nopeak" in f:
+    if "nosawing" in f:
         y = 0 * np.ones(len(files))
-    elif "peak" in f:
+    elif "sawing" in f:
         y = 1 * np.ones(len(files))
 
     for i, current_file in enumerate(files):
@@ -84,7 +87,6 @@ print("Test data length: " + str(len(test_x)))
 print("Test labels length: " + str(len(test_y)))
 print("")
 
-save_path = "../data_ast/chiseling/"
 os.makedirs(save_path, exist_ok=True)
 
 np.save(save_path + "train_x.npy", train_x)

@@ -17,10 +17,10 @@ print("Processing file: " + file)
 
 # read labels
 filename, file_extension = os.path.splitext(file)
-labels = pd.read_csv("../../labels/chiseling/"+ filename + ".csv", header=None).to_numpy()
+labels = pd.read_csv("../../../labels/chiseling/"+ filename + ".csv", header=None).to_numpy()
 
 # create subfolder for specimen
-save_path = "F:/datasets/ssl_v2/long_file_chiseling"
+save_path = "F:/datasets/ssl_v2/long_file_chiseling_" + filename
 os.makedirs(save_path, exist_ok=True)
 os.makedirs(save_path + "/" + filename, exist_ok=True)
 
@@ -87,6 +87,6 @@ for start in range(0, len(wav2) - window_size + 1, hop_size):
 
     count += 1
 
-os.makedirs("../data_ast/chiseling_long", exist_ok=True)
-np.save("../data_ast/chiseling_long/test_y_" + filename + ".npy", label)
+os.makedirs("../data_ast/chiseling_long_" + filename, exist_ok=True)
+np.save("../data_ast/chiseling_long_" + filename + "/test_y.npy", label)
 
