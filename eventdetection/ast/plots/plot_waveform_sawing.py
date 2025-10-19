@@ -12,8 +12,8 @@ verbose = False
 relaxed_condition = True
 
 # init
-root = "F:/datasets/ssl_v2/long_file_chiseling"
-files = ["1_016_Movie2D_heatmap"]
+root = "F:/datasets/ssl_v2/long_file_sawing"
+files = ["1_007_Movie2D_heatmap"]
 fold = "fold1"
 
 # change font for matplotlib
@@ -65,7 +65,7 @@ def get_event_times(predictions, win_len=0.15, hop=0.02, threshold=0.5, use_cent
 
 for count, file in enumerate(files):
 
-    test_y = np.load("../data_ast/chiseling_long_" + file + "/test_y.npy")
+    test_y = np.load("../data_ast/sawing_long_" + file + "/test_y.npy")
 
     wav_snippets = os.listdir(root + "_" + file + "/" + file)
     test_x = [root + "_" + file + "/" + file + "/" + item for item in wav_snippets]
@@ -114,7 +114,7 @@ for count, file in enumerate(files):
     dataset_test.set_transform(preprocess_audio, output_all_columns=False)
 
     # Load configuration from the pretrained model
-    pretrained_model = "../runs/best_model_chiseling_" + fold
+    pretrained_model = "../runs/best_model_sawing_" + fold
     config = ASTConfig.from_pretrained(pretrained_model)
 
     # Update configuration with the number of labels in our dataset
@@ -148,7 +148,6 @@ for count, file in enumerate(files):
 
     # these are the predictions for every consecutive window of the long file
     y_pred = predictions.predictions.argmax(axis=1)
-    # np.save("chiseling_ypred.npy", y_pred)
 
     FN = 0
     FP = 0
@@ -197,23 +196,24 @@ for count, file in enumerate(files):
                 tp_log[i] = 1
 
 
-    audio_file = "F:/SSL/experiment_3d/output/chiseling/" + file + ".wav"
+    audio_file = "F:/SSL/experiment_3d/output/sawing/" + file + ".wav"
     waveform, sr = librosa.load(audio_file, sr=None)
 
     # get events
-    path_labels = "../../../labels/chiseling/"
+    path_labels = "../../../labels/sawing/"
+
     with open(path_labels + file + ".csv", "r", encoding="utf-8") as ftxt:
         labels = ftxt.readlines()
         cleaned = [item.strip() for item in labels]
+        cleaned = cleaned[0].split(",")
         time_steps = np.asarray(cleaned, dtype=float)
 
     # Example ground truth and predicted event times (in the same time units as t)
-    ground_truth_events = time_steps
+    ground_truth_events = [time_steps[0]]
     predicted_events = get_event_times(tp_log) + 0.13  # adjust the timestamps for the window length - one sliding window
                                                        # (first onset will be detected in the end of the window)
     print("GT Onsets:")
     print(gt_onsets)
-    print("")
     print("Original labels:")
     print(time_steps)
 

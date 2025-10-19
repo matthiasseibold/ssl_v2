@@ -1,18 +1,25 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import librosa
+
 import os
 import numpy as np
 import evaluate
 from datasets import Dataset, Audio, ClassLabel, Features
 from transformers import ASTFeatureExtractor, ASTConfig, ASTForAudioClassification, TrainingArguments, Trainer
 
-verbose = True
+verbose = False
 relaxed_condition = True
-relaxed_window = 10
 
 # init
 root = "F:/datasets/ssl_v2/long_file_drilling"
-files = ["1_017_Movie2D_heatmap/",
-        "1_018_Movie2D_heatmap/"]
+files = ["1_018_Movie2D_heatmap"]
 fold = "fold3"
+relaxed_window = 10
+
+# change font for matplotlib
+plt.rcParams["font.family"] = "serif"
+plt.rcParams["font.serif"] = ["Times New Roman"]
 
 def transition_check(y_pred, i, window=10):
     """
@@ -81,15 +88,58 @@ def has_one_nearby(arr, i, window=10):
     # Check for any 1 in the window
     return np.any(arr[start:end] == 1)
 
+def get_event_times(predictions, win_len=0.15, hop=0.02, threshold=0.5, use_center=False, rising_only=True):
+    """
+    Returns event times (in seconds) from sliding-window predictions.
+
+    Parameters
+    ----------
+    predictions : array-like
+        Sequence of predictions (binary or continuous).
+    win_len : float
+        Length of each analysis window in seconds.
+    hop : float
+        Hop length between consecutive windows in seconds.
+    threshold : float
+        Threshold for event detection if predictions are continuous.
+    use_center : bool
+        If True, report times at window centers; if False, use window starts.
+    rising_only : bool
+        If True, return only the start of each new event (rising edges).
+
+    Returns
+    -------
+    event_times : np.ndarray
+        Array of times (in seconds) where events occur.
+    """
+
+    predictions = np.asarray(predictions)
+    binary_events = predictions >= threshold
+
+    if rising_only:
+        # detect rising edges (start of new event)
+        rising_edges = np.where(np.diff(binary_events.astype(int)) == 1)[0] + 1
+        indices = rising_edges
+    else:
+        # include all frames where event is active
+        indices = np.where(binary_events)[0]
+
+    if use_center:
+        times = indices * hop + win_len / 2
+    else:
+        times = indices * hop  # window start
+
+    return times
+
 for count, file in enumerate(files):
 
-    test_y = np.load("data_ast/drilling_long_" + file + "/test_y.npy")
+    test_y = np.load("../data_ast/drilling_long_" + file + "/test_y.npy")
 
     wav_snippets = os.listdir(root + "_" + file + "/" + file)
     test_x = [root + "_" + file + "/" + file + "/" + item for item in wav_snippets]
 
     # Define class labels
-    class_labels = ClassLabel(names=["nodrilling", "drilling"])
+    class_labels = ClassLabel(names=["nopeak", "peak"])
 
     SAMPLING_RATE = 16000
 
@@ -132,14 +182,14 @@ for count, file in enumerate(files):
     dataset_test.set_transform(preprocess_audio, output_all_columns=False)
 
     # Load configuration from the pretrained model
-    pretrained_model = "runs/best_model_drilling_" + fold
+    pretrained_model = "../runs/best_model_drilling_" + fold
     config = ASTConfig.from_pretrained(pretrained_model)
 
     # Update configuration with the number of labels in our dataset
     config.num_labels = 2
     label2id = {
-        "nodrilling": 0,
-        "drilling": 1
+        "nopeak": 0,
+        "peak": 1
     }
     config.label2id = label2id
     config.id2label = {v: k for k, v in label2id.items()}
@@ -166,11 +216,12 @@ for count, file in enumerate(files):
 
     # these are the predictions for every consecutive window of the long file
     y_pred = predictions.predictions.argmax(axis=1)
+    # np.save("drilling_ypred.npy", y_pred)
 
     FN = 0
     FP = 0
     TP = 0
-    gt_onsets = 0
+    gt_onsets = np.zeros(len(y_pred))
     tp_log = np.zeros(len(y_pred))
     fp_log = np.zeros(len(y_pred))
 
@@ -191,60 +242,60 @@ for count, file in enumerate(files):
 
         if relaxed_condition:
             if cond_gt:
-                gt_onsets += 1
+                gt_onsets[i] = 1
             if cond_pred and not cond_gt:
                 fp_log[i] = 1
             if cond_pred_relaxed and cond_gt:
                 TP += 1
                 tp_log[i] = 1
 
-        else:
-            if cond_gt:
-                gt_onsets += 1
-            if cond_pred and not cond_gt:
-                fp_log[i] = 1
-            if cond_pred and cond_gt:
-                tp_log[i] = 1
 
-    # filter FPs according to relaxed condition
-    if relaxed_condition:
-        for i in range(len(fp_log)):
-            if has_one_nearby(tp_log, i, window=relaxed_window):
-                fp_log[i] = 0
+    audio_file = "F:/SSL/experiment_3d/output/drilling/" + file + ".wav"
+    waveform, sr = librosa.load(audio_file, sr=None)
 
-    FN = gt_onsets - np.sum(tp_log)
-    FP = np.sum(fp_log)
-    TP = np.sum(tp_log)
+    # get events
+    path_labels = "../../../labels/drilling/"
 
+    with open(path_labels + file + ".csv", "r", encoding="utf-8") as ftxt:
+        labels = ftxt.readlines()
+        cleaned = [item.strip() for item in labels]
+        cleaned = [item.split(",") for item in labels]
+        time_steps = np.asarray(cleaned, dtype=float)
+
+    # Example ground truth and predicted event times (in the same time units as t)
+    ground_truth_events = time_steps[:,0]
+    predicted_events = get_event_times(tp_log) + 0.13  # adjust the timestamps for the window length - one sliding window
+                                                       # (first onset will be detected in the end of the window)
+    print("GT Onsets:")
+    print(gt_onsets)
     print("")
-    print("Intermediate results: ")
-    print("FN: " + str(FN))
-    print("FP: " + str(FP))
-    print("TP: " + str(TP))
+    print("Original labels:")
+    print(time_steps)
     print("")
-    print("Precision: " + str(TP / (TP + FP)))
-    print("Recall: " + str(TP / (TP + FN)))
-    print("F1: " + str(2 * TP / (2 * TP + FN + FP)))
+    print("Predicted labels:")
+    print(predicted_events)
 
-    if count == 0:
-        FN_all = FN
-        FP_all = FP
-        TP_all = TP
-    else:
-        FN_all = FN_all + FN
-        FP_all = FP_all + FP
-        TP_all = TP_all + TP
+    # Plot the waveform
+    librosa.display.waveshow(waveform, sr=sr, alpha=0.6)
 
-FN = FN_all
-FP = FP_all
-TP = TP_all
+    # Parameters for arrows
+    arrow_length = 0.3
+    arrow_width = 0.02
+    y_top = max(waveform) + 0.5  # position arrows just above waveform top
+    y_bottom = min(waveform) - 0.5  # position arrows below waveform bottom
 
-print("")
-print("Final results: ")
-print("FN: " + str(FN))
-print("FP: " + str(FP))
-print("TP: " + str(TP))
-print("")
-print("Precision: " + str(TP / (TP + FP)))
-print("Recall: " + str(TP / (TP + FN)))
-print("F1: " + str(2 * TP / (2 * TP + FN + FP)))
+    # Plot red arrows for ground truth events on top
+    for gt in ground_truth_events:
+        plt.arrow(gt, y_top, 0, -arrow_length, head_width=0.2, head_length=0.1, fc='red', ec='red')
+
+    # Plot green arrows for predicted events on bottom
+    for pred in predicted_events:
+        plt.arrow(pred, y_bottom, 0, arrow_length, head_width=0.2, head_length=0.1, fc='green', ec='green')
+
+    # Add labels and adjust plot
+    plt.ylim(y_bottom - 0.3, y_top + 0.3)
+    plt.xlabel('Time')
+    plt.ylabel('Amplitude')
+    # plt.title('Waveform with Ground Truth (red) and Predicted (green) Events')
+    # plt.legend(['Waveform', 'Ground Truth Events', 'Predicted Events'])
+    plt.show()
