@@ -1,0 +1,42 @@
+FOLD 1:
+Final results:
+FN: 12.0
+FP: 5.0
+TP: 0.0
+
+Precision: 0.0
+Recall: 0.0
+F1: 0.0
+
+
+#######################################
+FOLD 2:
+Final results:
+FN: 14.0
+FP: 18.0
+TP: 0.0
+
+Precision: 0.0
+Recall: 0.0
+F1: 0.0
+
+
+#######################################
+FOLD 3:
+Final results:
+FN: 14.0
+FP: 22.0
+TP: 0.0
+
+Precision: 0.0
+Recall: 0.0
+F1: 0.0
+
+#######################################
+OVERALL:
+
+Precision: 0 +- 0
+Recall: 0 +- 0
+F1: 0 +- 0
+
+
