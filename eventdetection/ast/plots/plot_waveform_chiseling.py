@@ -16,9 +16,10 @@ root = "F:/datasets/ssl_v2/long_file_chiseling"
 files = ["1_016_Movie2D_heatmap"]
 fold = "fold1"
 
-# change font for matplotlib
+# matplotlib parameters
 plt.rcParams["font.family"] = "serif"
 plt.rcParams["font.serif"] = ["Times New Roman"]
+plt.rcParams["font.size"] = 24
 
 def get_event_times(predictions, win_len=0.15, hop=0.02, threshold=0.5, use_center=False, rising_only=True):
     """
@@ -218,6 +219,8 @@ for count, file in enumerate(files):
     print(time_steps)
 
     # Plot the waveform
+    fig, ax = plt.subplots()
+    plt.tight_layout()
     librosa.display.waveshow(waveform, sr=sr, alpha=0.6)
 
     # Parameters for arrows
@@ -236,7 +239,7 @@ for count, file in enumerate(files):
 
     # Add labels and adjust plot
     plt.ylim(y_bottom - 0.3, y_top + 0.3)
-    plt.xlabel('Time')
+    plt.xlabel('Time [s]')
     plt.ylabel('Amplitude')
     # plt.title('Waveform with Ground Truth (red) and Predicted (green) Events')
     # plt.legend(['Waveform', 'Ground Truth Events', 'Predicted Events'])

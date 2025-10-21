@@ -2,19 +2,21 @@ import os
 import numpy as np
 import evaluate
 from datasets import Dataset, Audio, ClassLabel, Features
-from transformers import ASTFeatureExtractor, ASTConfig, ASTForAudioClassification, TrainingArguments, Trainer
+from transformers import ASTFeatureExtractor, ASTConfig, ASTForAudioClassification, Trainer
+from utils.evaluate_utils import has_one_nearby, transition_check
 
 verbose = True
-relaxed_condition = False
+relaxed_condition = True
+relaxed_window = 3
 
 # init
 root = "F:/datasets/ssl_v2/long_file_sawing"
-files = ["1_006_Movie2D_heatmap",
-         "1_007_Movie2D_heatmap",
-         "1_008_Movie2D_heatmap",
-         "1_009_Movie2D_heatmap",
-         "1_010_Movie2D_heatmap",]
-fold = "fold1"
+files = ["1_001_Movie2D_heatmap",
+         "1_002_Movie2D_heatmap",
+         "1_003_Movie2D_heatmap",
+         "1_004_Movie2D_heatmap",
+         "1_005_Movie2D_heatmap",]
+fold = "fold2"
 
 for count, file in enumerate(files):
 
@@ -102,9 +104,6 @@ for count, file in enumerate(files):
     # these are the predictions for every consecutive window of the long file
     y_pred = predictions.predictions.argmax(axis=1)
 
-    FN = 0
-    FP = 0
-    TP = 0
     gt_onsets = 0
     tp_log = np.zeros(len(y_pred))
     fp_log = np.zeros(len(y_pred))
@@ -114,8 +113,7 @@ for count, file in enumerate(files):
         cond_gt = test_y[i] == 1 and test_y[i - 1] == 0
         cond_pred = y_pred[i - 2] == 0 and y_pred[i - 1] == 0 and y_pred[i] == 1 and y_pred[i + 1] == 1
         # we count the detection as true positive, if there is one frame offset (if it's detected one frame too early or too late)
-        cond_pred_relaxed = (y_pred[i] == 1 and y_pred[i - 1] == 0) or (y_pred[i - 1] == 1 and y_pred[i - 2] == 0) or (
-                    y_pred[i + 1] == 1 and y_pred[i] == 0)
+        cond_pred_relaxed = transition_check(y_pred, i=i, window=relaxed_window)
 
         if verbose:
             print("Frame number: " + str(i) + " --- Predicted: " + str(y_pred[i]) + " --- Ground Truth: " + str(
@@ -125,27 +123,27 @@ for count, file in enumerate(files):
             if cond_pred:
                 print("Predictions: Peak detected at: " + str(0.15 + i * 0.02) + " s")
 
+            if relaxed_condition:
+                if cond_gt:
+                    gt_onsets += 1
+                if cond_pred and not cond_gt:
+                    fp_log[i] = 1
+                if cond_pred_relaxed and cond_gt:
+                    tp_log[i] = 1
+
+            else:
+                if cond_gt:
+                    gt_onsets += 1
+                if cond_pred and not cond_gt:
+                    fp_log[i] = 1
+                if cond_pred and cond_gt:
+                    tp_log[i] = 1
+
+        # filter FPs according to relaxed condition
         if relaxed_condition:
-            if cond_gt:
-                gt_onsets += 1
-            if cond_pred and not cond_gt:
-                fp_log[i] = 1
-                # we don't count it if we had a true positive before (relaxed condition)
-                if tp_log[i - 1] == 1:
+            for i in range(len(fp_log)):
+                if has_one_nearby(tp_log, i, window=relaxed_window):
                     fp_log[i] = 0
-            if cond_pred_relaxed and cond_gt:
-                TP += 1
-                tp_log[i] = 1
-                # also, we don't count the false positive if in the frame directly after a true positive is detected (relaxed condition)
-                if fp_log[i - 1] == 1:
-                    fp_log[i - 1] = 0
-        else:
-            if cond_gt:
-                gt_onsets += 1
-            if cond_pred and not cond_gt:
-                fp_log[i] = 1
-            if cond_pred and cond_gt:
-                tp_log[i] = 1
 
     FN = gt_onsets - np.sum(tp_log)
     FP = np.sum(fp_log)
