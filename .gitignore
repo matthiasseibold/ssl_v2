@@ -8,10 +8,10 @@ eventdetection/se-resnet/checkpoints/
 eventdetection/se-resnet/data/
 localization2d/matlab/results_matlab/
 data/dataset/*
-data/prediction/event_localization/rgbd_pointcloud
-data/prediction/event_localization/stereo_rgb_left
-data/prediction/event_localization/stereo_rgb_right
-data/prediction/event_localization/visualization
-data/prediction/event_localization/webcam_heatmap
-data/prediction/event_localization/webcam_rgb
+data/prediction/event_localization3d/rgbd_pointcloud
+data/prediction/event_localization3d/stereo_rgb_left
+data/prediction/event_localization3d/stereo_rgb_right
+data/prediction/event_localization3d/visualization
+data/prediction/event_localization3d/webcam_heatmap
+data/prediction/event_localization3d/webcam_rgb
 .DS_Store

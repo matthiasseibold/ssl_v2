@@ -433,7 +433,9 @@ if __name__ == "__main__":
     parser.add_argument("--dataset_path", default="data/dataset/", help="Path to the dataset")
     parser.add_argument("--scene_id", required=True, type=int, help="Scene to visualize")
     parser.add_argument(
-        "--out_path", default="data/predictions/localization/", help="Where to save the predictions"
+        "--out_path",
+        default="data/predictions/event_localization3d/",
+        help="Where to save the predictions",
     )
     parser.add_argument("--render_webcam", action="store_true", help="")
     parser.add_argument("--render_to_file", action="store_true", help="Save predictions")
