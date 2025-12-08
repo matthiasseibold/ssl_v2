@@ -15,3 +15,5 @@ data/prediction/event_localization3d/visualization
 data/prediction/event_localization3d/webcam_heatmap
 data/prediction/event_localization3d/webcam_rgb
 .DS_Store
+pyzed-*.whl
+uv.lock

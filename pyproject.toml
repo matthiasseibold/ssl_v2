@@ -29,3 +29,6 @@ dependencies = [
 se-resnet = [
     "tensorflow>=2.20.0",
 ]
+
+[tool.uv.sources]
+pyzed = { path = "pyzed-5.0-cp312-cp312-linux_x86_64.whl" }
