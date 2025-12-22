@@ -5,10 +5,10 @@ from datasets import Dataset, Audio, ClassLabel, Features
 from transformers import ASTFeatureExtractor, ASTConfig, ASTForAudioClassification, TrainingArguments, Trainer
 
 verbose = False
-relaxed_condition = False
+relaxed_condition = True
 
 # init
-root = "F:/datasets/ssl_v2/long_file_chiseling"
+root = "F:/datasets/ssl_v2/test_or_noise_50_percent/long_file_chiseling"
 files = ["1_015_Movie2D_heatmap",
          "1_016_Movie2D_heatmap"]
 fold = "fold1"
@@ -25,8 +25,8 @@ for count, file in enumerate(files):
 
     test_y = np.load("data_ast/chiseling_long_" + file + "/test_y.npy")
 
-    wav_snippets = os.listdir(root + "_" + file + "/" + file)
-    test_x = [root + "_" + file + "/" + file + "/" + item for item in wav_snippets]
+    wav_snippets = os.listdir(root + "_" + file)
+    test_x = [root + "_" + file + "/" + item for item in wav_snippets]
 
     # Define class labels
     class_labels = ClassLabel(names=["nopeak", "peak"])

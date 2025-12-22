@@ -5,25 +5,25 @@ from datasets import Dataset, Audio, ClassLabel, Features
 from transformers import ASTFeatureExtractor, ASTConfig, ASTForAudioClassification, Trainer
 from utils.evaluate_utils import has_one_nearby, transition_check
 
-verbose = True
-relaxed_condition = True
+verbose = False
+relaxed_condition = False
 relaxed_window = 3
 
 # init
-root = "F:/datasets/ssl_v2/long_file_sawing"
-files = ["1_001_Movie2D_heatmap",
-         "1_002_Movie2D_heatmap",
-         "1_003_Movie2D_heatmap",
-         "1_004_Movie2D_heatmap",
-         "1_005_Movie2D_heatmap",]
-fold = "fold2"
+root = "F:/datasets/ssl_v2/test_or_noise_50_percent/long_file_sawing"
+files = ["1_006_Movie2D_heatmap/",
+         "1_007_Movie2D_heatmap/",
+         "1_008_Movie2D_heatmap/",
+         "1_009_Movie2D_heatmap/",
+         "1_010_Movie2D_heatmap/"]
+fold = "fold1"
 
 for count, file in enumerate(files):
 
     test_y = np.load("data_ast/sawing_long_" + file + "/test_y.npy")
 
-    wav_snippets = os.listdir(root + "_" + file + "/" + file)
-    test_x = [root + "_" + file + "/" + file + "/" + item for item in wav_snippets]
+    wav_snippets = os.listdir(root + "_" + file)
+    test_x = [root + "_" + file + "/" + item for item in wav_snippets]
 
     # Define class labels
     class_labels = ClassLabel(names=["nosawing", "sawing"])
@@ -123,21 +123,21 @@ for count, file in enumerate(files):
             if cond_pred:
                 print("Predictions: Peak detected at: " + str(0.15 + i * 0.02) + " s")
 
-            if relaxed_condition:
-                if cond_gt:
-                    gt_onsets += 1
-                if cond_pred and not cond_gt:
-                    fp_log[i] = 1
-                if cond_pred_relaxed and cond_gt:
-                    tp_log[i] = 1
+        if relaxed_condition:
+            if cond_gt:
+                gt_onsets += 1
+            if cond_pred and not cond_gt:
+                fp_log[i] = 1
+            if cond_pred_relaxed and cond_gt:
+                tp_log[i] = 1
 
-            else:
-                if cond_gt:
-                    gt_onsets += 1
-                if cond_pred and not cond_gt:
-                    fp_log[i] = 1
-                if cond_pred and cond_gt:
-                    tp_log[i] = 1
+        else:
+            if cond_gt:
+                gt_onsets += 1
+            if cond_pred and not cond_gt:
+                fp_log[i] = 1
+            if cond_pred and cond_gt:
+                tp_log[i] = 1
 
         # filter FPs according to relaxed condition
         if relaxed_condition:
@@ -148,6 +148,16 @@ for count, file in enumerate(files):
     FN = gt_onsets - np.sum(tp_log)
     FP = np.sum(fp_log)
     TP = np.sum(tp_log)
+
+    print("")
+    print("Intermediate results: ")
+    print("FN: " + str(FN))
+    print("FP: " + str(FP))
+    print("TP: " + str(TP))
+    print("")
+    print("Precision: " + str(TP / (TP + FP)))
+    print("Recall: " + str(TP / (TP + FN)))
+    print("F1: " + str(2 * TP / (2 * TP + FN + FP)))
 
     if count == 0:
         FN_all = FN
