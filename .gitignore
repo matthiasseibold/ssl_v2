@@ -4,5 +4,10 @@ eventdetection/ast/data_ast/
 eventdetection/ast/runs/
 eventdetection/ast/data_ast_long/
 eventdetection/ast/long_file_windows/
-/eventdetection/se-resnet/checkpoints/
-/eventdetection/se-resnet/data/
+eventdetection/se-resnet/checkpoints/
+eventdetection/se-resnet/data/
+localization2d/matlab/results_matlab/
+data/
+.DS_Store
+pyzed-*.whl
+uv.lock
