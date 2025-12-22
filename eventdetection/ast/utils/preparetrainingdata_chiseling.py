@@ -1,21 +1,21 @@
 import os
 import numpy as np
 
-dataset_root = "F:/datasets/ssl_v2"
-save_path = "../data_ast/chiseling_fold3/"
+dataset_root = "/Users/matthiasseibold/Documents/Projects/ssl_v2_data"
+save_path = "../data_ast/chiseling_fold1/"
 
-train_folders = ["/peak_ast/1_013_Movie2D_heatmap/",
-                 "/peak_ast/1_014_Movie2D_heatmap/",
-                 "/peak_ast/1_015_Movie2D_heatmap/",
-                 "/peak_ast/1_016_Movie2D_heatmap/",
-                 "/nopeak_ast/1_013_Movie2D_heatmap/",
-                 "/nopeak_ast/1_014_Movie2D_heatmap/",
-                 "/nopeak_ast/1_015_Movie2D_heatmap/",
-                 "/nopeak_ast/1_016_Movie2D_heatmap/"]
-test_folders = ["/peak_ast/1_011_Movie2D_heatmap/",
+train_folders = ["/peak_ast/1_011_Movie2D_heatmap/",
                  "/peak_ast/1_012_Movie2D_heatmap/",
-                "/nopeak_ast/1_011_Movie2D_heatmap/",
-                "/nopeak_ast/1_012_Movie2D_heatmap/"]
+                 "/peak_ast/1_013_Movie2D_heatmap/",
+                 "/peak_ast/1_014_Movie2D_heatmap/",
+                 "/nopeak_ast/1_011_Movie2D_heatmap/",
+                 "/nopeak_ast/1_012_Movie2D_heatmap/",
+                 "/nopeak_ast/1_013_Movie2D_heatmap/",
+                 "/nopeak_ast/1_014_Movie2D_heatmap/"]
+test_folders = ["/peak_ast/1_015_Movie2D_heatmap/",
+                 "/peak_ast/1_016_Movie2D_heatmap/",
+                "/nopeak_ast/1_015_Movie2D_heatmap/",
+                "/nopeak_ast/1_016_Movie2D_heatmap/"]
 
 train_folders = [dataset_root + item for item in train_folders]
 test_folders = [dataset_root + item for item in test_folders]

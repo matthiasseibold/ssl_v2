@@ -5,11 +5,34 @@ from transformers import ASTFeatureExtractor, ASTConfig, ASTForAudioClassificati
 from audiomentations import Compose, AddGaussianSNR, GainTransition, Gain, ClippingDistortion, TimeStretch, PitchShift
 from sklearn.metrics import classification_report, confusion_matrix
 
+fold = "fold1"
+
 print("loading data")
-train_x = np.load("data_ast/chiseling_fold3/train_x.npy").tolist()
-train_y = np.load("data_ast/chiseling_fold3/train_y.npy").tolist()
-test_x = np.load("data_ast/chiseling_fold3/test_x.npy").tolist()
-test_y = np.load("data_ast/chiseling_fold3/test_y.npy").tolist()
+
+# train_x
+train_x = np.load("data_ast/chiseling_" + fold + "/train_x.npy").tolist()
+train_x = train_x + np.load("data_ast/drilling_" + fold + "/train_x.npy").tolist()
+train_x = train_x + np.load("data_ast/sawing_" + fold + "/train_x.npy").tolist()
+
+# train_y
+train_y = np.load("data_ast/chiseling_" + fold + "/train_y.npy").tolist()
+tmp = np.load("data_ast/drilling_" + fold + "/train_y.npy").tolist()
+train_y = train_y + [2 if x == 1 else x for x in tmp]
+tmp = np.load("data_ast/sawing_" + fold + "/train_y.npy").tolist()
+train_y = train_y + [3 if x == 1 else x for x in tmp]
+
+# test_x
+test_x = np.load("data_ast/chiseling_" + fold + "/test_x.npy").tolist()
+test_x = test_x + np.load("data_ast/drilling_" + fold + "/test_x.npy").tolist()
+test_x = test_x + np.load("data_ast/sawing_" + fold + "/test_x.npy").tolist()
+
+# test_y
+test_y = np.load("data_ast/chiseling_" + fold + "/test_y.npy").tolist()
+tmp = np.load("data_ast/drilling_" + fold + "/test_y.npy").tolist()
+test_y = test_y + [2 if x == 1 else x for x in tmp]
+tmp = np.load("data_ast/sawing_" + fold + "/test_y.npy").tolist()
+test_y = test_y + [3 if x == 1 else x for x in tmp]
+
 
 print("Training data length: " + str(len(train_x)))
 print("Training labels length: " + str(len(train_y)))
@@ -17,7 +40,7 @@ print("Test data length: " + str(len(test_x)))
 print("Test labels length: " + str(len(test_y)))
 print("")
 
-classes = ["nopeak", "peak"]
+classes = ["idle", "chiseling", "drilling", "sawing"]
 
 # Define class labels
 class_labels = ClassLabel(names=classes)
@@ -99,10 +122,12 @@ dataset_test.set_transform(preprocess_audio, output_all_columns=False)
 config = ASTConfig.from_pretrained(pretrained_model)
 
 # Update configuration with the number of labels in our dataset
-config.num_labels = 2
+config.num_labels = 4
 label2id = {
-    "nopeak": 0,
-    "peak": 1,
+    "idle": 0,
+    "drilling": 1,
+    "chiseling": 2,
+    "sawing": 3
 }
 config.label2id = label2id
 config.id2label = {v: k for k, v in label2id.items()}

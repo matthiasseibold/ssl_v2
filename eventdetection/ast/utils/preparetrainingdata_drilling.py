@@ -1,16 +1,16 @@
 import os
 import numpy as np
 
-dataset_root = "F:/datasets/ssl_v2"
-save_path = "../data_ast/drilling_fold1/"
+dataset_root = "/Users/matthiasseibold/Documents/Projects/ssl_v2_data"
+save_path = "../data_ast/drilling_fold3/"
 
-train_recordings = ["1_017_Movie2D_heatmap/",
-                    "1_018_Movie2D_heatmap/",
-                    "1_019_Movie2D_heatmap/",
-                    "1_020_Movie2D_heatmap/"]
-
-test_recordings = ["1_021_Movie2D_heatmap/",
+train_recordings = ["1_019_Movie2D_heatmap/",
+                    "1_020_Movie2D_heatmap/",
+                    "1_021_Movie2D_heatmap/",
                     "1_022_Movie2D_heatmap/"]
+
+test_recordings = ["1_017_Movie2D_heatmap/",
+                    "1_018_Movie2D_heatmap/"]
 
 train_folders = ["/drilling_ast/" + item for item in train_recordings] + ["/nodrilling_ast/" + item for item in train_recordings]
 test_folders = ["/drilling_ast/" + item for item in test_recordings] + ["/nodrilling_ast/" + item for item in test_recordings]
