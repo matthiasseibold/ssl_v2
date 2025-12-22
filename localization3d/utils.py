@@ -75,62 +75,6 @@ def project_points(
         return None
 
 
-def trimesh_iou_3d(
-    box1: o3d.geometry.OrientedBoundingBox, box2: o3d.geometry.OrientedBoundingBox
-) -> float:
-    """
-    Computes the exact intersection volume of two 3D oriented bounding boxes.
-
-    This solution requires the 'trimesh' library.
-    (pip install trimesh)
-
-    Args:
-        box1: o3d.geometry.OrientedBoundingBox
-        box2: o3d.geometry.OrientedBoundingBox
-
-    Returns:
-        The intersection volume of the two bounding boxes.
-    """
-
-    # 1. Create o3d.geometry.TriangleMesh from o3d.geometry.OrientedBoundingBox
-    # These are watertight, 8-vertex, 12-triangle meshes.
-    mesh_box1 = o3d.geometry.TriangleMesh.create_from_oriented_bounding_box(box1)
-    mesh_box2 = o3d.geometry.TriangleMesh.create_from_oriented_bounding_box(box2)
-
-    # 2. Convert Open3D meshes to trimesh.Trimesh objects
-    # trimesh requires vertices and faces
-    tm_box1 = trimesh.Trimesh(
-        vertices=np.asarray(mesh_box1.vertices), faces=np.asarray(mesh_box1.triangles)
-    )
-    tm_box2 = trimesh.Trimesh(
-        vertices=np.asarray(mesh_box2.vertices), faces=np.asarray(mesh_box2.triangles)
-    )
-
-    # 3. Compute the boolean intersection using trimesh
-    # The 'auto' engine will try to pick the best available (e.g., 'blender', 'scad').
-    # This is the core operation.
-    try:
-        intersection_mesh = tm_box1.intersection(tm_box2, engine="manifold")
-    except Exception as e:
-        # Handle cases where the boolean operation might fail (e.g., degenerate intersections)
-        print(f"Trimesh boolean intersection failed: {e}")  # Uncomment for debugging
-        return 0.0
-
-    # 4. Get the volume of the resulting intersection mesh
-    # If the intersection is empty or non-volumetric (a plane, line, or point),
-    # trimesh will correctly report the volume as 0.0.
-    intersect_vol = intersection_mesh.volume
-
-    # Handle potential numerical precision issues where volume is very close to zero
-    if intersect_vol < 1e-10:
-        return 0.0
-
-    # Calculate the union volume
-    union_vol = tm_box1.volume + tm_box2.volume - intersect_vol
-
-    return intersect_vol / union_vol
-
-
 def iou_3d(corners1: np.ndarray, corners2: np.ndarray) -> float:
     """
     Computes the Intersection over Union (IoU) of two 3D bounding boxes.
@@ -215,7 +159,7 @@ def find_weighted_cluster_centers(points, scores, eps, min_weight):
         scores (np.ndarray): (N,) array of scores (weights).
         eps (float): The DBSCAN neighborhood radius. This is a
                      crucial parameter to tune.
-        min_weight (float): The minimum *sum of scores* within 'eps'
+        min_weight (int): The minimum *sum of scores* within 'eps'
                             for a point to be considered a "core point".
                             (This is passed to sklearn's 'min_samples').
 

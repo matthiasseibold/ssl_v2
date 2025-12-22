@@ -15,13 +15,6 @@ def read_matrix(calib, keys, default=None):
     return np.array([s.split(",") for s in calib.split(";")]).astype(float)
 
 
-def get_rocsync_params(rocsync_dict, key):
-    for k, v in rocsync_dict.items():
-        if key in k:
-            return v
-    return None
-
-
 def load_calibration(dataset_path: Path):
     webcam_path = dataset_path / "webcam" / "calibration_info.json"
     zed_path = dataset_path / "rgbd" / "calibration_info.json"

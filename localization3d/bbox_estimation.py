@@ -7,7 +7,7 @@ import pyzed.sl as sl
 from tqdm import tqdm
 import open3d as o3d
 from argparse import ArgumentParser
-from inout import load_calibration, load_ftk, get_rocsync_params, read_ftk_pose, get_object_info
+from inout import load_calibration, load_ftk, read_ftk_pose, get_object_info
 from utils import (
     get_scene_category,
     project_points,
@@ -62,10 +62,28 @@ def estimate_sound_sources(args):
     rgbd_rec_path = dataset_path / "rgbd" / f"1_{args.scene_id:03d}_Movie2D_rgbd.svo2"
     ftk_rec_path = dataset_path / "tracking_system" / f"1_{args.scene_id:03d}_Movie2D_tracking.csv"
 
+    # generate output suffix
+    dbscan_r = args.dbscan_radius
+    dbscan_min_weight = args.dbscan_min_weight
+    output_suffix = f"_r{dbscan_r:.0f}_minWeight{dbscan_min_weight:.0f}"
+
+    # ZED point cloud resolution (H*W)
+    zed_resolution_downsample_factor = args.rgbd_downsampling_factor
+    if zed_resolution_downsample_factor > 1:
+        zed_target_resolution = sl.Resolution(
+            int(1920 / zed_resolution_downsample_factor),
+            int(1080 / zed_resolution_downsample_factor),
+        )
+        output_suffix += f"_ds{zed_resolution_downsample_factor}"
+    else:
+        zed_target_resolution = sl.Resolution(0, 0)
+
     # create output directories
     (dataset_path / "bbox3d_labels").mkdir(parents=True, exist_ok=True)
     (out_path / "sound_source_bbox3d").mkdir(parents=True, exist_ok=True)
-    (video_out_path / f"1_{args.scene_id:03d}_Movie2D").mkdir(parents=True, exist_ok=True)
+    (video_out_path / f"1_{args.scene_id:03d}_Movie2D{output_suffix}").mkdir(
+        parents=True, exist_ok=True
+    )
     (out_path / "webcam_rgb" / webcam_rec_path.stem).mkdir(parents=True, exist_ok=True)
     (out_path / "webcam_heatmap" / webcam_rec_path.stem).mkdir(parents=True, exist_ok=True)
     (out_path / "stereo_rgb_left" / webcam_rec_path.stem).mkdir(parents=True, exist_ok=True)
@@ -100,18 +118,14 @@ def estimate_sound_sources(args):
         renderer.scene.show_skybox(False)
 
     # load bbox detections (only for event frame ids)
-    webcam_bbox_path = (
-        webcam_rec_path.parent.parent
-        / "event_heatmap_bounding_boxes"
-        / f"{webcam_rec_path.stem[:13]}.csv"
-    )
-    event_bboxes = np.loadtxt(webcam_bbox_path, delimiter=",")
+    event_frame_path = Path(args.event_frames) / f"{webcam_rec_path.stem[:13]}.csv"
+    event_frames = np.loadtxt(event_frame_path, delimiter=",")[:, 0]
     # load ftk
     scene_category = get_scene_category(args.scene_id)
     ftk_frames = load_ftk(ftk_rec_path, list(object_marker_poses[scene_category].keys()))
     # load webcam
     webcam_rec = cv2.VideoCapture(webcam_rec_path, cv2.CAP_FFMPEG)
-    webcam_sync = get_rocsync_params(synchronization_info, webcam_rec_path.name)
+    webcam_sync = synchronization_info.get(webcam_rec_path.name, None)
     assert webcam_sync is not None
     assert webcam_rec.get(cv2.CAP_PROP_FRAME_COUNT) == webcam_sync["n_frames"]
     webcam_frame_steps = (webcam_sync["last_frame"] - webcam_sync["first_frame"]) / (
@@ -123,9 +137,10 @@ def estimate_sound_sources(args):
         / "webcam_acoustic_heatmap"
         / f"{webcam_rec_path.stem[:13]}_heatmap.avi"
     )
+    assert webcam_heatmap_path.is_file(), f"Path does not exist: {webcam_rec_path}"
     webcam_heatmap_rec = cv2.VideoCapture(webcam_heatmap_path, cv2.CAP_FFMPEG)
     # load zed
-    zed_sync = get_rocsync_params(synchronization_info, rgbd_rec_path.name)
+    zed_sync = synchronization_info.get(rgbd_rec_path.name, None)
     assert zed_sync is not None
     zed_frame_steps = (zed_sync["last_frame"] - zed_sync["first_frame"]) / (
         zed_sync["n_frames"] - 1
@@ -140,19 +155,24 @@ def estimate_sound_sources(args):
     if zed_rec.open(sl_init) != sl.ERROR_CODE.SUCCESS:
         raise RuntimeError("Error opening SL")
 
-    pbar = tqdm(total=webcam_rec.get(cv2.CAP_PROP_FRAME_COUNT), desc="Frame")
+    pbar_total = (
+        webcam_rec.get(cv2.CAP_PROP_FRAME_COUNT)
+        if not args.only_event_frames
+        else len(event_frames)
+    )
+    pbar = tqdm(total=pbar_total, desc="Frame")
     pred_3d_bbox_age = visualization_config["bbox_decay_frame_count"]
     gt_bbox_age = visualization_config["bbox_decay_frame_count"]
 
     gt_bboxes = []
     pred_3d_bboxes = []
     mesh_key = None
-    event_idx = 0 if args.only_event_frames else None
+    event_idx = 0
     while webcam_rec.isOpened():
         if args.only_event_frames:
-            if event_idx >= event_bboxes.shape[0]:
+            if event_idx >= len(event_frames):
                 break
-            if not webcam_rec.set(cv2.CAP_PROP_POS_FRAMES, event_bboxes[event_idx, 0]):
+            if not webcam_rec.set(cv2.CAP_PROP_POS_FRAMES, event_frames[event_idx]):
                 print("ERROR setting ref_frame_id webcam_rec")
                 break
             is_event_frame = True
@@ -167,26 +187,27 @@ def estimate_sound_sources(args):
             break
         if not webcam_heatmap_rec.set(cv2.CAP_PROP_POS_FRAMES, ref_frame_id):
             print("ERROR setting ref_frame_id heatmap")
+            break
         ret, ref_heatmap = webcam_heatmap_rec.read()
         if not ret:
             print("ERROR reading ref_heatmap")
+            break
 
         if not args.only_event_frames:
-            event_idx = np.searchsorted(event_bboxes[:, 0], ref_frame_id)
+            event_idx = np.searchsorted(event_frames, ref_frame_id)
             is_event_frame = (
-                0 <= event_idx < event_bboxes.shape[0]
-                and event_bboxes[event_idx, 0] == ref_frame_id
+                0 <= event_idx < len(event_frames) and event_frames[event_idx] == ref_frame_id
             )
 
         ref_timestamp = webcam_frame_steps * ref_frame_id + webcam_sync["first_frame"]  # in ms
         webcam_rgb_path = out_path / "webcam_rgb" / webcam_rec_path.stem / f"{ref_frame_id:06d}.jpg"
         if args.save_raw_frames and not webcam_rgb_path.exists():
             cv2.imwrite(webcam_rgb_path, ref_frame)
-        webcam_heatmap_path = (
+        webcam_heatmap_frame_path = (
             out_path / "webcam_heatmap" / webcam_rec_path.stem / f"{ref_frame_id:06d}.jpg"
         )
-        if args.save_raw_frames and is_event_frame and not webcam_heatmap_path.exists():
-            cv2.imwrite(webcam_heatmap_path, ref_heatmap)
+        if args.save_raw_frames and is_event_frame and not webcam_heatmap_frame_path.exists():
+            cv2.imwrite(webcam_heatmap_frame_path, ref_heatmap)
         # grab ZED frame
         zed_frame_id = int(round((ref_timestamp - zed_sync["first_frame"]) / zed_frame_steps, 0))
         if zed_frame_id < 0 or zed_frame_id >= zed_sync["n_frames"]:
@@ -199,7 +220,7 @@ def estimate_sound_sources(args):
             out_path / "stereo_rgb_left" / webcam_rec_path.stem / f"{ref_frame_id:06d}.jpg"
         )
         rgb_left = sl.Mat()
-        zed_rec.retrieve_image(rgb_left, sl.VIEW.LEFT)
+        zed_rec.retrieve_image(rgb_left, sl.VIEW.LEFT, resolution=zed_target_resolution)
         if args.save_raw_frames and is_event_frame and not zed_left_rgb_path.exists():
             rgb_left.write(str(zed_left_rgb_path))
         zed_right_rgb_path = (
@@ -207,13 +228,15 @@ def estimate_sound_sources(args):
         )
         if args.save_raw_frames and is_event_frame and not zed_right_rgb_path.exists():
             rgb_right = sl.Mat()
-            zed_rec.retrieve_image(rgb_right, sl.VIEW.RIGHT)
+            zed_rec.retrieve_image(rgb_right, sl.VIEW.RIGHT, resolution=zed_target_resolution)
             rgb_right.write(str(zed_right_rgb_path))
         zed_point_cloud_path = (
             out_path / "rgbd_pointcloud" / webcam_rec_path.stem / f"{ref_frame_id:06d}.ply"
         )
         point_cloud = sl.Mat()
-        zed_rec.retrieve_measure(point_cloud, sl.MEASURE.XYZRGBA, sl.MEM.CPU)
+        zed_rec.retrieve_measure(
+            point_cloud, sl.MEASURE.XYZRGBA, sl.MEM.CPU, resolution=zed_target_resolution
+        )
         if args.save_raw_frames and is_event_frame and not zed_point_cloud_path.exists():
             point_cloud.write(str(zed_point_cloud_path))
         # project ZED point cloud into webcam
@@ -257,7 +280,7 @@ def estimate_sound_sources(args):
                 ref_heatmap[proj_pts_int[1], proj_pts_int[0], ::-1]
             )
             cluster_centers, labels = find_weighted_cluster_centers(
-                xyz_trunc[pts_in_webcam], point_scores, 20.0, 200
+                xyz_trunc[pts_in_webcam], point_scores, dbscan_r, dbscan_min_weight
             )
             unique_labels, label_counts = np.unique(labels[labels != -1], return_counts=True)
             sort_idx = np.argsort(label_counts)
@@ -410,7 +433,10 @@ def estimate_sound_sources(args):
             )
             img = renderer.render_to_image()
             o3d.io.write_image(
-                video_out_path / webcam_rec_path.stem / f"{ref_frame_id:06d}.jpg", img
+                video_out_path
+                / f"1_{args.scene_id:03d}_Movie2D{output_suffix}"
+                / f"{ref_frame_id:06d}.jpg",
+                img,
             )
 
         gt_bbox_age += 1
@@ -419,11 +445,16 @@ def estimate_sound_sources(args):
 
     if len(gt_bboxes) > 0:
         gt_bboxes = np.stack(gt_bboxes)
-    np.save(dataset_path / "bbox3d_labels" / f"1_{args.scene_id}_Movie2D_3dBboxes.npy", gt_bboxes)
+    np.save(
+        dataset_path / "bbox3d_labels" / f"1_{args.scene_id:03d}_Movie2D_3dBboxes.npy", gt_bboxes
+    )
     if len(pred_3d_bboxes) > 0:
         pred_3d_bboxes = np.stack(pred_3d_bboxes)
     np.save(
-        out_path / "sound_source_bbox3d" / f"1_{args.scene_id}_Movie2D_3dBboxes.npy", pred_3d_bboxes
+        out_path
+        / "sound_source_bbox3d"
+        / f"1_{args.scene_id:03d}_Movie2D_3dBboxes{output_suffix}.npy",
+        pred_3d_bboxes,
     )
     pbar.close()
 
@@ -434,7 +465,7 @@ if __name__ == "__main__":
     parser.add_argument("--scene_id", required=True, type=int, help="Scene to visualize")
     parser.add_argument(
         "--out_path",
-        default="data/predictions/event_localization3d/",
+        default="data/prediction/event_localization3d/",
         help="Where to save the predictions",
     )
     parser.add_argument("--render_webcam", action="store_true", help="")
@@ -443,12 +474,32 @@ if __name__ == "__main__":
         "--save_raw_frames", action="store_true", help="Save input frames used for predictions"
     )
     parser.add_argument(
+        "--event_frames",
+        type=str,
+        help="Path to event frame detections.",
+    )
+    parser.add_argument(
         "--only_event_frames",
         action="store_true",
-        help="Predict sound source only on frames with detected acoustic events",
+        help="Predict sound source only on frames with detected acoustic events.",
     )
     parser.add_argument(
         "--interactive", action="store_true", help="Show per-frame interactive visualization"
+    )
+    parser.add_argument(
+        "--dbscan_radius", type=float, default=30.0, help="Radius for DBSCAN clustering"
+    )
+    parser.add_argument(
+        "--dbscan_min_weight",
+        type=int,
+        default=200,
+        help="Cluster minimal weight threshold for DBSCAN clustering",
+    )
+    parser.add_argument(
+        "--rgbd_downsampling_factor",
+        type=int,
+        default=1,
+        help="Downsampling factor for the width _and_ height of the input RGB-D image representing the 3D scene.",
     )
     args = parser.parse_args()
 
