@@ -2,19 +2,19 @@ import os
 import numpy as np
 
 dataset_root = "F:/datasets/ssl_v2"
-save_path = "../data_ast/sawing_fold2/"
+save_path = "../data_ast/multiclass/sawing_fold3/"
 
-train_recordings = ["1_006_Movie2D_heatmap/",
-                   "1_007_Movie2D_heatmap/",
-                   "1_008_Movie2D_heatmap/",
-                   "1_009_Movie2D_heatmap/",
-                   "1_010_Movie2D_heatmap/"]
+train_recordings = ["1_005_Movie2D_heatmap/",
+                    "1_006_Movie2D_heatmap/",
+                    "1_007_Movie2D_heatmap/",
+                    "1_008_Movie2D_heatmap/",
+                    "1_009_Movie2D_heatmap/",
+                    "1_010_Movie2D_heatmap/"]
 
 test_recordings = ["1_001_Movie2D_heatmap/",
                     "1_002_Movie2D_heatmap/",
                     "1_003_Movie2D_heatmap/",
-                    "1_004_Movie2D_heatmap/",
-                    "1_005_Movie2D_heatmap/"]
+                    "1_004_Movie2D_heatmap/"]
 
 train_folders = ["/sawing_ast/" + item for item in train_recordings] + ["/nosawing_ast/" + item for item in train_recordings]
 test_folders = ["/sawing_ast/" + item for item in test_recordings] + ["/nosawing_ast/" + item for item in test_recordings]
