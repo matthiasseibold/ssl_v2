@@ -5,7 +5,7 @@ from datasets import Dataset, Audio, ClassLabel, Features
 from transformers import ASTFeatureExtractor, ASTConfig, ASTForAudioClassification, TrainingArguments, Trainer
 
 verbose = True
-relaxed_condition = True
+relaxed_condition = False
 
 # init
 root = "F:/datasets/ssl_v2/long_file_chiseling"
