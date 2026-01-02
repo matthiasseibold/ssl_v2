@@ -9,7 +9,7 @@ from utils.evaluate_utils import has_one_nearby, transition_check
 # evaluation parameters
 verbose = False
 relaxed_condition = True
-evaluation_mode = "chiseling"
+evaluation_mode = "drilling"
 relaxed_window = 3  # chiseling: 1, drilling: 10, sawing: 3
 folds = ["fold1", "fold2", "fold3"]
 
@@ -177,8 +177,7 @@ for fold in folds:
                 cond_gt = False
 
             cond_pred =  y_pred[i-2] == 0 and y_pred[i-1] == 0 and  y_pred[i] == 1 and y_pred[i+1] == 1
-            # we count the detection as true positive, if there is one frame offset (if it's detected one frame too early or too late)
-            # cond_pred_relaxed = (y_pred[i] == 1 and y_pred[i-1] == 0) or (y_pred[i-1] == 1 and y_pred[i-2] == 0) or (y_pred[i+1] == 1 and y_pred[i] == 0)
+            # we count the detection as true positive, if there is one frame offset (if it's detected x frames too early or too late)
             cond_pred_relaxed = transition_check(y_pred, i=i, window=relaxed_window)
 
             if verbose:
