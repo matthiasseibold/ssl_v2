@@ -9,231 +9,242 @@ from utils.evaluate_utils import has_one_nearby, transition_check
 # evaluation parameters
 verbose = False
 relaxed_condition = True
-evaluation_mode = "drilling"
+evaluation_mode = ["chiseling", "drilling", "sawing"]
 relaxed_window = 3  # chiseling: 1, drilling: 10, sawing: 3
 folds = ["fold1", "fold2", "fold3"]
 
-for fold in folds:
+windows = [1, 10, 10]
 
-    print("###################")
-    print(fold)
+for index, mode in enumerate(evaluation_mode):
 
-    # init
-    root = "../../../ssl_v2_data/long_file_"
+    relaxed_window = windows[index]
+    print(relaxed_window)
 
-    if fold == "fold1":
-        files = ["chiseling_long_1_015_Movie2D_heatmap",
-                 "chiseling_long_1_016_Movie2D_heatmap",
-                 "drilling_long_1_021_Movie2D_heatmap/",
-                 "drilling_long_1_022_Movie2D_heatmap/",
-                 "sawing_long_1_007_Movie2D_heatmap/",
-                 "sawing_long_1_008_Movie2D_heatmap/",
-                 "sawing_long_1_009_Movie2D_heatmap/",
-                 "sawing_long_1_010_Movie2D_heatmap/"]
-    elif fold == "fold2":
-        files = ["chiseling_long_1_013_Movie2D_heatmap",
-                 "chiseling_long_1_014_Movie2D_heatmap",
-                 "drilling_long_1_019_Movie2D_heatmap/",
-                 "drilling_long_1_020_Movie2D_heatmap/",
-                 "sawing_long_1_004_Movie2D_heatmap/",
-                 "sawing_long_1_005_Movie2D_heatmap/",
-                 "sawing_long_1_006_Movie2D_heatmap/"]
-    elif fold == "fold3":
-        files = ["chiseling_long_1_011_Movie2D_heatmap",
-                 "chiseling_long_1_012_Movie2D_heatmap",
-                 "drilling_long_1_017_Movie2D_heatmap/",
-                 "drilling_long_1_018_Movie2D_heatmap/",
-                 "sawing_long_1_001_Movie2D_heatmap/",
-                 "sawing_long_1_002_Movie2D_heatmap/",
-                 "sawing_long_1_003_Movie2D_heatmap/"]
+    print("######################################")
+    print(mode)
+    print("######################################")
+    print("")
 
-    for count, file in enumerate(files):
+    for fold in folds:
 
-        test_y = np.load("data_ast/" + file + "/test_y.npy")
+        print("###" + fold + "###")
 
-        # we do some regex stuff to compensate for the folder structure
-        parts = re.split(r'([a-zA-Z]+_long_)', file, maxsplit=1)
-        filename = parts[2]
-        m = re.match(r'^([^_]+)_', parts[1])
-        action = m.group(1)
-        path_to_files = root + action + "_" + filename + "/" + filename
+        # init
+        root = "../../../ssl_v2_data/test_or_noise_50_percent/long_file_"
 
-        wav_snippets = os.listdir(path_to_files)
+        if fold == "fold1":
+            files = ["chiseling_long_1_015_Movie2D_heatmap",
+                     "chiseling_long_1_016_Movie2D_heatmap",
+                     "drilling_long_1_021_Movie2D_heatmap/",
+                     "drilling_long_1_022_Movie2D_heatmap/",
+                     "sawing_long_1_007_Movie2D_heatmap/",
+                     "sawing_long_1_008_Movie2D_heatmap/",
+                     "sawing_long_1_009_Movie2D_heatmap/",
+                     "sawing_long_1_010_Movie2D_heatmap/"]
+        elif fold == "fold2":
+            files = ["chiseling_long_1_013_Movie2D_heatmap",
+                     "chiseling_long_1_014_Movie2D_heatmap",
+                     "drilling_long_1_019_Movie2D_heatmap/",
+                     "drilling_long_1_020_Movie2D_heatmap/",
+                     "sawing_long_1_004_Movie2D_heatmap/",
+                     "sawing_long_1_005_Movie2D_heatmap/",
+                     "sawing_long_1_006_Movie2D_heatmap/"]
+        elif fold == "fold3":
+            files = ["chiseling_long_1_011_Movie2D_heatmap",
+                     "chiseling_long_1_012_Movie2D_heatmap",
+                     "drilling_long_1_017_Movie2D_heatmap/",
+                     "drilling_long_1_018_Movie2D_heatmap/",
+                     "sawing_long_1_001_Movie2D_heatmap/",
+                     "sawing_long_1_002_Movie2D_heatmap/",
+                     "sawing_long_1_003_Movie2D_heatmap/"]
 
-        # on mac we need to sort the list as it is not loaded sequentially
-        wav_snippets = sorted(wav_snippets, key=lambda x: int(x.split('.')[0]))
+        for count, file in enumerate(files):
 
-        test_x = [path_to_files + "/" + item for item in wav_snippets]
+            test_y = np.load("data_ast/" + file + "/test_y.npy")
 
-        # Define class labels
-        classes = ["idle", "chiseling", "drilling", "sawing"]
-        class_labels = ClassLabel(names=classes)
+            # we do some regex stuff to compensate for the folder structure
+            parts = re.split(r'([a-zA-Z]+_long_)', file, maxsplit=1)
+            filename = parts[2]
+            m = re.match(r'^([^_]+)_', parts[1])
+            action = m.group(1)
+            path_to_files = root + action + "_" + filename + "/" + filename
 
-        SAMPLING_RATE = 16000
+            wav_snippets = os.listdir(path_to_files)
 
-        # Define features with audio and label columns
-        features = Features({
-            "audio": Audio(),  # Define the audio feature
-            "labels": class_labels  # Assign the class labels
-        })
+            # on mac we need to sort the list as it is not loaded sequentially
+            wav_snippets = sorted(wav_snippets, key=lambda x: int(x.split('.')[0]))
 
-        # construct dataset
-        dataset_test = Dataset.from_dict({
-            "audio": test_x,
-            "labels": test_y,  # Corresponding labels for the audio files
-        }, features=features)
-        dataset_test = dataset_test.cast_column("audio", Audio(sampling_rate=SAMPLING_RATE))
+            test_x = [path_to_files + "/" + item for item in wav_snippets]
 
-        # we define which pretrained model we want to use and instantiate a feature extractor
-        pretrained_model_fe = "MIT/ast-finetuned-audioset-10-10-0.4593"
-        feature_extractor = ASTFeatureExtractor.from_pretrained(pretrained_model_fe)
+            # Define class labels
+            classes = ["idle", "chiseling", "drilling", "sawing"]
+            class_labels = ClassLabel(names=classes)
 
-        # we save model input name and sampling rate for later use
-        model_input_name = feature_extractor.model_input_names[0]  # key -> 'input_values'
+            SAMPLING_RATE = 16000
 
-        def preprocess_audio(batch):
-            wavs = [audio['array'] for audio in batch['input_values']]
-            # inputs are spectrograms as torch.tensors now
-            inputs = feature_extractor(wavs, sampling_rate=SAMPLING_RATE, return_tensors="pt")
+            # Define features with audio and label columns
+            features = Features({
+                "audio": Audio(),  # Define the audio feature
+                "labels": class_labels  # Assign the class labels
+            })
 
-            output_batch = {model_input_name: inputs.get(model_input_name), "labels": list(batch["labels"])}
-            return output_batch
+            # construct dataset
+            dataset_test = Dataset.from_dict({
+                "audio": test_x,
+                "labels": test_y,  # Corresponding labels for the audio files
+            }, features=features)
+            dataset_test = dataset_test.cast_column("audio", Audio(sampling_rate=SAMPLING_RATE))
 
-        # computed mean and std from training dataset
-        feature_extractor.mean = -0.18241186
-        feature_extractor.std = 1.117633
+            # we define which pretrained model we want to use and instantiate a feature extractor
+            pretrained_model_fe = "MIT/ast-finetuned-audioset-10-10-0.4593"
+            feature_extractor = ASTFeatureExtractor.from_pretrained(pretrained_model_fe)
 
-        dataset_test = dataset_test.cast_column("audio", Audio(sampling_rate=feature_extractor.sampling_rate))
-        dataset_test = dataset_test.rename_column("audio", "input_values")
+            # we save model input name and sampling rate for later use
+            model_input_name = feature_extractor.model_input_names[0]  # key -> 'input_values'
 
-        # w/o augmentations on the test set
-        dataset_test.set_transform(preprocess_audio, output_all_columns=False)
+            def preprocess_audio(batch):
+                wavs = [audio['array'] for audio in batch['input_values']]
+                # inputs are spectrograms as torch.tensors now
+                inputs = feature_extractor(wavs, sampling_rate=SAMPLING_RATE, return_tensors="pt")
 
-        # Load configuration from the pretrained model
-        pretrained_model = "runs/best_model_multiclass_" + fold
-        config = ASTConfig.from_pretrained(pretrained_model)
+                output_batch = {model_input_name: inputs.get(model_input_name), "labels": list(batch["labels"])}
+                return output_batch
 
-        # Update configuration with the number of labels in our dataset
-        config.num_labels = 4
-        label2id = {
-            "idle": 0,
-            "chiseling": 1,
-            "drilling": 2,
-            "sawing": 3
-        }
-        config.label2id = label2id
-        config.id2label = {v: k for k, v in label2id.items()}
+            # computed mean and std from training dataset
+            feature_extractor.mean = -0.18241186
+            feature_extractor.std = 1.117633
 
-        # Initialize the model with the updated configuration
-        model = ASTForAudioClassification.from_pretrained(pretrained_model, config=config, ignore_mismatched_sizes=True)
-        model.init_weights()
+            dataset_test = dataset_test.cast_column("audio", Audio(sampling_rate=feature_extractor.sampling_rate))
+            dataset_test = dataset_test.rename_column("audio", "input_values")
 
-        accuracy = evaluate.load("accuracy")
-        recall = evaluate.load("recall")
-        precision = evaluate.load("precision")
-        f1 = evaluate.load("f1")
+            # w/o augmentations on the test set
+            dataset_test.set_transform(preprocess_audio, output_all_columns=False)
 
-        AVERAGE = "macro" if config.num_labels > 2 else "binary"
+            # Load configuration from the pretrained model
+            pretrained_model = "runs/best_model_multiclass_" + fold
+            config = ASTConfig.from_pretrained(pretrained_model)
 
-        # Setup the trainer
-        trainer = Trainer(
-            model=model,
-            eval_dataset=dataset_test
-        )
+            # Update configuration with the number of labels in our dataset
+            config.num_labels = 4
+            label2id = {
+                "idle": 0,
+                "chiseling": 1,
+                "drilling": 2,
+                "sawing": 3
+            }
+            config.label2id = label2id
+            config.id2label = {v: k for k, v in label2id.items()}
 
-        # trainer.evaluate()
-        predictions = trainer.predict(test_dataset=dataset_test)
+            # Initialize the model with the updated configuration
+            model = ASTForAudioClassification.from_pretrained(pretrained_model, config=config, ignore_mismatched_sizes=True)
+            model.init_weights()
 
-        # these are the predictions for every consecutive window of the long file
-        y_pred = predictions.predictions.argmax(axis=1)
+            accuracy = evaluate.load("accuracy")
+            recall = evaluate.load("recall")
+            precision = evaluate.load("precision")
+            f1 = evaluate.load("f1")
 
-        # filter predictions for queried class
-        if evaluation_mode == "chiseling":
-            mask = (y_pred == 2) | (y_pred == 3)
-            y_pred[mask] = 0
-        elif evaluation_mode == "drilling":
-            mask = (y_pred == 1) | (y_pred == 3)
-            y_pred[mask] = 0
-            mask = y_pred == 2
-            y_pred[mask] = 1
-        elif evaluation_mode == "sawing":
-            mask = (y_pred == 1) | (y_pred == 2)
-            y_pred[mask] = 0
-            mask = y_pred == 3
-            y_pred[mask] = 1
+            AVERAGE = "macro" if config.num_labels > 2 else "binary"
 
-        FN = 0
-        FP = 0
-        TP = 0
-        gt_onsets = 0
-        tp_log = np.zeros(len(y_pred))
-        fp_log = np.zeros(len(y_pred))
+            # Setup the trainer
+            trainer = Trainer(
+                model=model,
+                eval_dataset=dataset_test
+            )
 
-        for i in range(len(y_pred) - 1):
+            # trainer.evaluate()
+            predictions = trainer.predict(test_dataset=dataset_test)
 
-            if evaluation_mode == action:
-                cond_gt = test_y[i] == 1 and test_y[i-1] == 0
-            else:
-                cond_gt = False
+            # these are the predictions for every consecutive window of the long file
+            y_pred = predictions.predictions.argmax(axis=1)
 
-            cond_pred =  y_pred[i-2] == 0 and y_pred[i-1] == 0 and  y_pred[i] == 1 and y_pred[i+1] == 1
-            # we count the detection as true positive, if there is one frame offset (if it's detected x frames too early or too late)
-            cond_pred_relaxed = transition_check(y_pred, i=i, window=relaxed_window)
+            # filter predictions for queried class
+            if mode == "chiseling":
+                mask = (y_pred == 2) | (y_pred == 3)
+                y_pred[mask] = 0
+            elif mode == "drilling":
+                mask = (y_pred == 1) | (y_pred == 3)
+                y_pred[mask] = 0
+                mask = y_pred == 2
+                y_pred[mask] = 1
+            elif mode == "sawing":
+                mask = (y_pred == 1) | (y_pred == 2)
+                y_pred[mask] = 0
+                mask = y_pred == 3
+                y_pred[mask] = 1
 
-            if verbose:
-                print("Frame number: " + str(i) + " --- Predicted: " + str(y_pred[i]) + " --- Ground Truth: " + str(
-                    test_y[i]))
-                if cond_gt:
-                    print("Ground Truth: Peak detected at: " + str(0.15 + i * 0.02) + " s")
-                if cond_pred:
-                    print("Predictions: Peak detected at: " + str(0.15 + i * 0.02) + " s")
+            FN = 0
+            FP = 0
+            TP = 0
+            gt_onsets = 0
+            tp_log = np.zeros(len(y_pred))
+            fp_log = np.zeros(len(y_pred))
 
+            for i in range(len(y_pred) - 1):
+
+                if mode == action:
+                    cond_gt = test_y[i] == 1 and test_y[i-1] == 0
+                else:
+                    cond_gt = False
+
+                cond_pred =  y_pred[i-2] == 0 and y_pred[i-1] == 0 and  y_pred[i] == 1 and y_pred[i+1] == 1
+                # we count the detection as true positive, if there is one frame offset (if it's detected x frames too early or too late)
+                cond_pred_relaxed = transition_check(y_pred, i=i, window=relaxed_window)
+
+                if verbose:
+                    print("Frame number: " + str(i) + " --- Predicted: " + str(y_pred[i]) + " --- Ground Truth: " + str(
+                        test_y[i]))
+                    if cond_gt:
+                        print("Ground Truth: Peak detected at: " + str(0.15 + i * 0.02) + " s")
+                    if cond_pred:
+                        print("Predictions: Peak detected at: " + str(0.15 + i * 0.02) + " s")
+
+                if relaxed_condition:
+                    if cond_gt:
+                        gt_onsets += 1
+                    if cond_pred and not cond_gt:
+                        fp_log[i] = 1
+                    if cond_pred_relaxed and cond_gt:
+                        tp_log[i] = 1
+
+                else:
+                    if cond_gt:
+                        gt_onsets += 1
+                    if cond_pred and not cond_gt:
+                        fp_log[i] = 1
+                    if cond_pred and cond_gt:
+                        tp_log[i] = 1
+
+            # filter FPs according to relaxed condition
             if relaxed_condition:
-                if cond_gt:
-                    gt_onsets += 1
-                if cond_pred and not cond_gt:
-                    fp_log[i] = 1
-                if cond_pred_relaxed and cond_gt:
-                    tp_log[i] = 1
+                for i in range(len(fp_log)):
+                    if has_one_nearby(tp_log, i, window=relaxed_window):
+                        fp_log[i] = 0
 
+            FN = gt_onsets - np.sum(tp_log)
+            FP = np.sum(fp_log)
+            TP = np.sum(tp_log)
+
+            if count == 0:
+                FN_all = FN
+                FP_all = FP
+                TP_all = TP
             else:
-                if cond_gt:
-                    gt_onsets += 1
-                if cond_pred and not cond_gt:
-                    fp_log[i] = 1
-                if cond_pred and cond_gt:
-                    tp_log[i] = 1
+                FN_all = FN_all + FN
+                FP_all = FP_all + FP
+                TP_all = TP_all + TP
 
-        # filter FPs according to relaxed condition
-        if relaxed_condition:
-            for i in range(len(fp_log)):
-                if has_one_nearby(tp_log, i, window=relaxed_window):
-                    fp_log[i] = 0
+        FN = FN_all
+        FP = FP_all
+        TP = TP_all
 
-        FN = gt_onsets - np.sum(tp_log)
-        FP = np.sum(fp_log)
-        TP = np.sum(tp_log)
-
-        if count == 0:
-            FN_all = FN
-            FP_all = FP
-            TP_all = TP
-        else:
-            FN_all = FN_all + FN
-            FP_all = FP_all + FP
-            TP_all = TP_all + TP
-
-    FN = FN_all
-    FP = FP_all
-    TP = TP_all
-
-    print("")
-    print("Final results: ")
-    print("FN: " + str(FN))
-    print("FP: " + str(FP))
-    print("TP: " + str(TP))
-    print("")
-    print("Precision: " + str(TP / (TP + FP)))
-    print("Recall: " + str(TP / (TP + FN)))
-    print("F1: " + str(2 * TP / (2 * TP + FN + FP)))
-    print("")
+        print("")
+        print("Final results: ")
+        print("FN: " + str(FN))
+        print("FP: " + str(FP))
+        print("TP: " + str(TP))
+        print("")
+        print("Precision: " + str(TP / (TP + FP)))
+        print("Recall: " + str(TP / (TP + FN)))
+        print("F1: " + str(2 * TP / (2 * TP + FN + FP)))
+        print("")
