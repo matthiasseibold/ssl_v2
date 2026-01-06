@@ -30,7 +30,12 @@ for index, mode in enumerate(evaluation_mode):
         print("###" + fold + "###")
 
         # init
-        root = "../../../ssl_v2_data/test_or_noise_50_percent/long_file_"
+
+        # mac
+        # root = "../../../ssl_v2_data/test_or_noise_50_percent/long_file_"
+
+        # win
+        root = "F:/datasets/ssl_v2/test_or_noise_50_percent/long_file_"
 
         if fold == "fold1":
             files = ["chiseling_long_1_015_Movie2D_heatmap",
