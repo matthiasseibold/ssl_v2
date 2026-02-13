@@ -6,10 +6,10 @@ from audiomentations import Compose, AddGaussianSNR, GainTransition, Gain, Clipp
 from sklearn.metrics import classification_report, confusion_matrix
 
 print("loading data")
-train_x = np.load("data_ast/chiseling_fold2/train_x.npy").tolist()
-train_y = np.load("data_ast/chiseling_fold2/train_y.npy").tolist()
-test_x = np.load("data_ast/chiseling_fold2/test_x.npy").tolist()
-test_y = np.load("data_ast/chiseling_fold2/test_y.npy").tolist()
+train_x = np.load("../data_ast/chiseling_fold2/train_x.npy").tolist()
+train_y = np.load("../data_ast/chiseling_fold2/train_y.npy").tolist()
+test_x = np.load("../data_ast/chiseling_fold2/test_x.npy").tolist()
+test_y = np.load("../data_ast/chiseling_fold2/test_y.npy").tolist()
 
 print("Training data length: " + str(len(train_x)))
 print("Training labels length: " + str(len(train_y)))
@@ -113,7 +113,7 @@ model.init_weights()
 
 # Configure training run with TrainingArguments class
 training_args = TrainingArguments(
-    output_dir="runs/ast_classifier",
+    output_dir="../runs/ast_classifier",
     logging_dir="./logs/ast_classifier",
     # report_to="tensorboard",
     learning_rate=1e-5,  # Learning rate

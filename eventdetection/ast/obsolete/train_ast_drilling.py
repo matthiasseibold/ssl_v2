@@ -117,7 +117,7 @@ for fold in folds:
 
     # Configure training run with TrainingArguments class
     training_args = TrainingArguments(
-        output_dir="runs/ast_classifier",
+        output_dir="../runs/ast_classifier",
         logging_dir="./logs/ast_classifier",
         # report_to="tensorboard",
         learning_rate=1e-5,  # Learning rate
