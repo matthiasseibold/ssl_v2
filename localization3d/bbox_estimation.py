@@ -1,3 +1,4 @@
+import time
 from pathlib import Path
 import json
 import numpy as np
@@ -56,6 +57,9 @@ def estimate_sound_sources(args):
     assert synchronization_path.is_file(), f"Path not found: {synchronization_path}"
     out_path = Path(args.out_path)
     video_out_path = out_path / "visualization"
+
+    projection_latencies = []
+    localization_latencies = []
 
     # input streams
     webcam_rec_path = dataset_path / "webcam" / f"1_{args.scene_id:03d}_Movie2D_image.avi"
@@ -240,6 +244,7 @@ def estimate_sound_sources(args):
         if args.save_raw_frames and is_event_frame and not zed_point_cloud_path.exists():
             point_cloud.write(str(zed_point_cloud_path))
         # project ZED point cloud into webcam
+        start_time = time.perf_counter()
         xyz_np = point_cloud.get_data()[:, :, :3].reshape(-1, 3)
         rgb_np = rgb_left.get_data()[:, :, [2, 1, 0]].reshape(-1, 3)  # BGR to RGB
         valid_mask = np.isfinite(xyz_np).all(axis=1)
@@ -275,6 +280,9 @@ def estimate_sound_sources(args):
         ).astype(np.uint8)
         heatmap_colors = rgb_colors
 
+        projection_latencies.append(time.perf_counter() - start_time)
+        start_time = time.perf_counter()
+
         if is_event_frame:
             point_scores = calculate_color_score(
                 ref_heatmap[proj_pts_int[1], proj_pts_int[0], ::-1]
@@ -303,6 +311,7 @@ def estimate_sound_sources(args):
                     cluster_bbox.center, cluster_bbox.R, extents
                 )
                 pred_3d_bbox_age = 0
+                localization_latencies.append(time.perf_counter() - start_time)
 
         ftk_query_time = zed_frame_time - zed_clock_offset + ftk_clock_offset
         ftk_frame_idx = np.searchsorted(ftk_frames[:, 0], ftk_query_time, side="left")
@@ -457,6 +466,15 @@ def estimate_sound_sources(args):
         pred_3d_bboxes,
     )
     pbar.close()
+
+    projection_latencies = np.array(projection_latencies) * 1000  # convert to ms
+    localization_latencies = np.array(localization_latencies) * 1000  # convert to ms
+    print(
+        f"Projection Latency: {np.mean(projection_latencies):.2f} +- {np.std(projection_latencies):.2f} ms"
+    )
+    print(
+        f"Localization Latency: {np.mean(localization_latencies):.2f} +- {np.std(localization_latencies):.2f} ms"
+    )
 
 
 if __name__ == "__main__":
