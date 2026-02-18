@@ -124,7 +124,7 @@ for name, ablation_study, tested_values in all_ablation_studies:
             np.mean(bbox_center_errors) if len(bbox_center_errors) > 0 else np.nan
         )
 
-    plt.figure(figsize=(4, 4))
+    plt.figure(figsize=(4, 2))
     plt.plot(tested_values, average_ious, lw=2)
     plt.xlabel(name)
     # plt.xticks(tested_values)
@@ -133,6 +133,7 @@ for name, ablation_study, tested_values in all_ablation_studies:
     plt.ylim(bottom=0, top=0.3)
     plt.grid()
     plt.tight_layout()
+    plt.savefig(f"data/evaluation/ablation_study_{name.replace(' ', '_')}.pdf")
     plt.show()
 
     if False:
