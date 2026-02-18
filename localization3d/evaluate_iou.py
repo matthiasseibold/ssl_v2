@@ -1,6 +1,7 @@
 from collections import defaultdict
 
 import numpy as np
+import matplotlib as mpl
 from matplotlib import pyplot as plt
 from pathlib import Path
 import open3d as o3d
@@ -16,6 +17,7 @@ n_bins = 50
 
 category_scores = [[], [], []]
 category_names = ["Sawing", "Chiseling", "Drilling"]
+category_colors = [mpl.colormaps["Set1"](i) for i in [1, 2, 0]]
 
 
 def get_category_id(rec_id):
@@ -78,6 +80,8 @@ recording_ious = defaultdict(list)
 category_bbox_center_errs = defaultdict(lambda: defaultdict(list))
 recording_bbox_center_errs = defaultdict(list)
 
+MAX_DIST_ERROR = 500.0
+
 for i in range(1, 23):
     if i in excluded_recordings:
         continue
@@ -94,7 +98,10 @@ for i in range(1, 23):
             if has_gt and has_pred:
                 ious.append(trimesh_iou_3d(pred_bboxes[j], gt_bboxes[j]))
                 bbox_center_errors.append(
-                    np.linalg.norm(pred_bboxes[j].mean(0) - gt_bboxes[j].mean(0))
+                    min(
+                        MAX_DIST_ERROR,
+                        np.linalg.norm(pred_bboxes[j].mean(0) - gt_bboxes[j].mean(0)),
+                    )
                 )
             elif has_pred:
                 ious.append(-2.0)  # false positive
@@ -107,7 +114,7 @@ for i in range(1, 23):
 
 # evaluate and generate plots
 for approach, _ in approach_filename_templates.items():
-    plt.figure(figsize=(6, 6))
+    plt.figure(figsize=(4, 2))
     plt.hist(
         recording_ious[approach],
         bins=n_bins,
@@ -166,19 +173,22 @@ for approach, _ in approach_filename_templates.items():
             f"{approach}\t Overall\t IoU Threshold {thres:.2f}:\tPrecision {precision:.2f},\tRecall {recall:.2f},\tF1 Score {f1:.2f}"
         )
 
-    plt.figure(figsize=(6, 3))
-    plt.hist(category_scores, bins=n_bins, label=category_names, stacked=True)
+    plt.figure(figsize=(4, 2))
+    plt.hist(
+        category_scores, bins=n_bins, label=category_names, color=category_colors, stacked=True
+    )
     plt.xlabel("3D Bounding Box IoU")
     plt.ylabel("Number of Samples")
     # plt.title(f"IoU Scores per Category: {approach}")
     plt.xlim(0, 0.7)
     plt.legend()
     plt.tight_layout()
+    plt.savefig(f"data/evaluation/bbox_iou_per_category.pdf")
     plt.show()
 
 # evaluate and generate plots for bbox center errors
 for approach, _ in approach_filename_templates.items():
-    plt.figure(figsize=(6, 6))
+    plt.figure(figsize=(4, 2))
     plt.hist(
         recording_bbox_center_errs[approach],
         bins=n_bins,
@@ -193,18 +203,25 @@ for approach, _ in approach_filename_templates.items():
     plt.show()
 
     for i in range(3):
-        # false positives have assigned score of -2.0, so move them to 0.0
-        raw_category_scores = np.array(category_bbox_center_errs[approach][i])
-        category_scores[i] = np.maximum(0, raw_category_scores)
+        category_scores[i] = np.array(category_bbox_center_errs[approach][i])
         print(
-            f"{approach}\t {category_names[i]}\t 3D BBox Center Error: {np.mean(category_scores[i]):.2f} +- {np.std(category_scores[i]):.2f}"
+            f"{approach}\t {category_names[i]:10s}\t 3D BBox Center Error: {np.mean(category_scores[i]):.2f} +- {np.std(category_scores[i]):.2f}"
         )
 
-    plt.figure(figsize=(6, 3))
-    plt.hist(category_scores, bins=n_bins, label=category_names, stacked=True)
+    all_scores = np.concatenate([category_bbox_center_errs[approach][i] for i in range(3)])
+    print(
+        f"{approach}\t Overall\t 3D BBox Center Error: {np.mean(all_scores):.2f} +- {np.std(all_scores):.2f}"
+    )
+
+    plt.figure(figsize=(4, 2))
+    plt.hist(
+        category_scores, bins=n_bins, label=category_names, color=category_colors, stacked=True
+    )
     plt.xlabel("3D Bounding Box Center Error [mm]")
     plt.ylabel("Number of Samples")
     # plt.title(f"3D Bounding Box Center Errors per Category: {approach}")
+    plt.xlim(left=0, right=MAX_DIST_ERROR)
     plt.legend()
     plt.tight_layout()
+    plt.savefig(f"data/evaluation/bbox_center_error_per_category.pdf")
     plt.show()
