@@ -1,4 +1,5 @@
 *.asv
+data/dataset/
 .idea/
 eventdetection/ast/data_ast/
 eventdetection/ast/runs/
