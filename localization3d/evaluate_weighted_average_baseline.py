@@ -1,6 +1,7 @@
 from collections import defaultdict
 
 import numpy as np
+import matplotlib as mpl
 from matplotlib import pyplot as plt
 from pathlib import Path
 import open3d as o3d
@@ -16,6 +17,7 @@ n_bins = 50
 
 category_scores = [[], [], []]
 category_names = ["Sawing", "Chiseling", "Drilling"]
+category_colors = [mpl.colormaps["Set1"](i) for i in [1, 2, 0]]
 
 dataset_path = Path("data/dataset/")
 objects_dir = dataset_path / "object_models"
@@ -186,7 +188,9 @@ for approach, _ in approach_filename_templates.items():
         )
 
     plt.figure(figsize=(4, 2))
-    plt.hist(category_scores, bins=n_bins, label=category_names, stacked=True)
+    plt.hist(
+        category_scores, bins=n_bins, label=category_names, color=category_colors, stacked=True
+    )
     plt.xlabel("3D Bounding Box IoU")
     plt.ylabel("Number of Samples")
     # plt.title(f"IoU Scores per Category: {approach}")
@@ -224,7 +228,9 @@ for approach, _ in approach_filename_templates.items():
     )
 
     plt.figure(figsize=(4, 2))
-    plt.hist(category_scores, bins=n_bins, label=category_names, stacked=True)
+    plt.hist(
+        category_scores, bins=n_bins, label=category_names, color=category_colors, stacked=True
+    )
     plt.xlabel("3D Bounding Box Center Error [mm]")
     plt.ylabel("Number of Samples")
     # plt.title(f"3D Bounding Box Center Errors per Category: {approach}")
