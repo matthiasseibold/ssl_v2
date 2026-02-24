@@ -1,6 +1,6 @@
 # Sound Source Localization for 3D Spatial Mapping of Surgical Actions in Dynamic Scenes
 
-Source code for the IPCAI2026 submission "Sound Source Localization for 3D Spatial Mapping of Surgical Actions in Dynamic Scenes".
+Source code for the IPCAI2026 submission "Sound Source Localization for 3D Spatial Mapping of Surgical Actions in Dynamic Scenes" ([arXiv link](https://arxiv.org/abs/2510.24332)).
 
 ## Dependencies
 We rely on StereoLabs [ZED SDK](https://www.stereolabs.com/en-ch/developers/release) to read the captured stereo-RGB videos.
