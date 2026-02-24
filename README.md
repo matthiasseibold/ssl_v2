@@ -9,7 +9,9 @@ Make sure to install this first. Run `python3 /usr/local/zed/get_python_api.py` 
 Use `uv sync` to install all other dependencies.
 
 ## Dataset
-The dataset will be made available here soon.
+The dataset can be downloaded at: https://doi.org/10.5281/zenodo.18682076
+The scripts in this repository expect the dataset to be located at `data/dataset/` by default.
+
 
 ## Event Detection
 The implementation of our event detection stage is located under `eventdetection/ast`.
