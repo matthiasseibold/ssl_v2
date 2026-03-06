@@ -18,3 +18,9 @@ The implementation of our event detection stage is located under `eventdetection
 
 ## Sound Source Localization
 The implementation of our sound source locazation stage is located under `localization3d`.
+
+## Demo Video
+[Watch wich sound 🔊]
+
+https://github.com/user-attachments/assets/a1ffa828-e558-432a-bb68-4746b4cbaad5
+
