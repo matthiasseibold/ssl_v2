@@ -1,7 +1,6 @@
 *.asv
 data/dataset/
 .idea/
-eventdetection/ast/data_ast/
 eventdetection/ast/runs/
 eventdetection/ast/data_ast_long/
 eventdetection/ast/long_file_windows/

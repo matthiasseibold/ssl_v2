@@ -1,0 +1,12 @@
+train_folders = ["/peak_ast/1_011_Movie2D_heatmap/",
+                 "/peak_ast/1_012_Movie2D_heatmap/",
+                 "/peak_ast/1_015_Movie2D_heatmap/",
+                 "/peak_ast/1_016_Movie2D_heatmap/",
+                 "/nopeak_ast/1_011_Movie2D_heatmap/",
+                 "/nopeak_ast/1_012_Movie2D_heatmap/",
+                 "/nopeak_ast/1_015_Movie2D_heatmap/",
+                 "/nopeak_ast/1_016_Movie2D_heatmap/"]
+test_folders = ["/peak_ast/1_013_Movie2D_heatmap/",
+                 "/peak_ast/1_014_Movie2D_heatmap/",
+                "/nopeak_ast/1_013_Movie2D_heatmap/",
+                "/nopeak_ast/1_014_Movie2D_heatmap/"]

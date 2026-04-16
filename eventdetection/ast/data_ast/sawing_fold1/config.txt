@@ -1,0 +1,11 @@
+train_recordings = ["1_001_Movie2D_heatmap/",
+                    "1_002_Movie2D_heatmap/",
+                    "1_003_Movie2D_heatmap/",
+                    "1_004_Movie2D_heatmap/",
+                    "1_005_Movie2D_heatmap/"]
+
+test_recordings = ["1_006_Movie2D_heatmap/",
+                   "1_007_Movie2D_heatmap/",
+                   "1_008_Movie2D_heatmap/",
+                   "1_009_Movie2D_heatmap/",
+                   "1_010_Movie2D_heatmap/"]
